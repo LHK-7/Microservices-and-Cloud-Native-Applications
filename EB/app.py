@@ -4,8 +4,10 @@
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
 #
-from flask import Flask, Response, request
+import uuid
 
+from flask import Flask, Response, request, render_template
+from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from datetime import datetime
 import json
 
@@ -159,6 +161,38 @@ def demo(parameter):
     rsp = Response(json.dumps(msg), status=200, content_type="application/json")
     return rsp
 
+class registerForm(Form):
+    last_name = StringField('Last Name', [validators.Length(min=1, max=50)])
+    first_name = StringField('First Name', [validators.Length(min=1, max=50)])
+    email = StringField('Email', [validators.length(min=6,max=50)])
+    password = PasswordField('Password',[
+        validators.DataRequired()
+    ])
+
+@application.route("/api/user/registeration",  methods=["GET","POST"])
+def register_user():
+    global _user_service
+
+    form = registerForm(request.form)
+    if request.method == 'POST' and form.validate():
+        last_name = form.last_name.data
+        first_name = form.first_name.data
+        email = form.email.data
+        password = form.password.data
+        id = str(uuid.uuid4())
+
+        res = [id, last_name,first_name,email,password]
+        temp ={'id': res[0], 'last_name': res[1], 'first_name':res[2], 'email': res[3], 'password': res[4]}
+
+        print(res)
+        print(temp)
+
+        user_service = _get_user_service()
+        rsp = user_service.create_user(temp)
+        return render_template('register.html', form=form)
+
+        #return render_template('register.html', form=form)
+    return render_template('register.html', form=form)
 
 @application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
 def user_email(email):
