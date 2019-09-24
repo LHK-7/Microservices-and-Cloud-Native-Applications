@@ -1,0 +1,25 @@
+{% block body %}
+<h1>Register</h1>
+<form method="post" action="">
+
+    <div class="form-group">
+        <label>last_name</label>
+        {{form.last_name(class="form-control")}}
+    </div>
+
+        <div class="form-group">
+                    <label>frist_name</label>
+        {{form.first_name(class="form-control")}}
+    </div>
+
+        <div class="form-group">
+                    <label>email</label>
+        {{form.email(class="form-control")}}
+    </div>
+        <div class="form-group">
+                     <label>password</label>
+        {{form.password(class="form-control")}}
+    </div>
+    <p><input type="submit" class="btn btn-primary" value="Submit"></p>
+</form>
+{% endblock %}
