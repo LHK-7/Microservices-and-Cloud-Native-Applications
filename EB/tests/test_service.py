@@ -2,6 +2,8 @@
 from CustomerInfo.Users import UsersService as UserService
 import json
 
+
+
 def t1():
 
     r = UserService.get_by_email('metus.vitae@nibhAliquamornare.edu')
@@ -22,5 +24,12 @@ def t2():
     print("Result = ", r)
 
 
+def test_delete():
+    user_info = {"email": "lectus@aliquetsemut.com"}
+    r = UserService.delete_user(user_info)
+
+
 #t1()
-t2()
+# t2()
+
+test_delete()
