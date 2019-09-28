@@ -4,20 +4,19 @@
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
 #
-import uuid
-
-from flask import Flask, Response, request, render_template
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from datetime import datetime
 import json
-
-from CustomerInfo.Users import UsersService as UserService
-from Context.Context import Context
-
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
 #
 import logging
+import uuid
+from datetime import datetime
+
+from Context.Context import Context
+from CustomerInfo.Users import UsersService as UserService
+from flask import Flask, Response, request, render_template
+from wtforms import Form, StringField, PasswordField, validators
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -186,13 +185,39 @@ def register_user():
         id = str(uuid.uuid4())
 
         res = [id, last_name,first_name,email,password]
-        temp ={'id': res[0], 'last_name': res[1], 'first_name':res[2], 'email': res[3], 'password': res[4]}
+        temp ={"id": res[0], "last_name": res[1], "first_name":res[2], "email": res[3], "password": res[4]}
 
         print(res)
         print(temp)
 
         user_service = _get_user_service()
         rsp = user_service.create_user(temp)
+        return render_template('register.html', form=form)
+
+        #return render_template('register.html', form=form)
+    return render_template('register.html', form=form)
+
+
+@application.route("/api/user/update",  methods=["GET","POST"])
+def update_user():
+    global _user_service
+
+    form = registerForm(request.form)
+    if request.method == 'POST' and form.validate():
+        last_name = form.last_name.data
+        first_name = form.first_name.data
+        email = form.email.data
+        password = form.password.data
+        id = str(uuid.uuid4())
+
+        res = [id, last_name,first_name,email,password]
+        temp ={"id": res[0], "last_name": res[1], "first_name":res[2], "email": res[3], "password": res[4]}
+
+        print(res)
+        print(temp)
+
+        user_service = _get_user_service()
+        rsp = user_service.update_user(temp)
         return render_template('register.html', form=form)
 
         #return render_template('register.html', form=form)

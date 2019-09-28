@@ -1,8 +1,8 @@
+import logging
+
 import pymysql
-import copy
 from Context.Context import Context
 
-import logging
 logger = logging.getLogger()
 
 _default_connection = None
@@ -14,7 +14,6 @@ def _get_default_connection():
     if _default_connection is None:
         ctx = Context.get_default_context()
         c_info = ctx.get_context("db_connect_info")
-
         _default_connection = pymysql.connect(
             host=c_info['host'],
             user=c_info['user'],

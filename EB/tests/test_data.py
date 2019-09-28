@@ -1,7 +1,9 @@
 
-from DataAccess.DataObject import UsersRDB as UsersRDB
 import json
 from uuid import uuid4
+
+from DataAccess.DataObject import UsersRDB as UsersRDB
+
 
 def t1():
 
@@ -20,5 +22,6 @@ def t2():
      res = UsersRDB.create_user(user_info=usr)
      print("Res = ", res)
 
-#t1()
+# t1()
 t2()
+
