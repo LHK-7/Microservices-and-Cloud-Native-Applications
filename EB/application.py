@@ -80,6 +80,7 @@ def _get_user_service():
 
     return _user_service
 
+
 def init():
 
     global _default_context, _user_service
@@ -127,6 +128,7 @@ def log_and_extract_input(method, path_params=None):
 
     return inputs
 
+
 def log_response(method, status, data, txt):
 
     msg = {
@@ -161,6 +163,7 @@ def demo(parameter):
     rsp = Response(json.dumps(msg), status=200, content_type="application/json")
     return rsp
 
+
 class registerForm(Form):
     last_name = StringField('Last Name', [validators.Length(min=1, max=50)])
     first_name = StringField('First Name', [validators.Length(min=1, max=50)])
@@ -168,6 +171,7 @@ class registerForm(Form):
     password = PasswordField('Password',[
         validators.DataRequired()
     ])
+
 
 @application.route("/api/user/registeration",  methods=["GET","POST"])
 def register_user():
@@ -194,6 +198,7 @@ def register_user():
         #return render_template('register.html', form=form)
     return render_template('register.html', form=form)
 
+
 @application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
 def user_email(email):
 
@@ -205,7 +210,6 @@ def user_email(email):
     rsp_txt = None
 
     try:
-
         user_service = _get_user_service()
 
         logger.error("/email: _user_service = " + str(user_service))
@@ -222,6 +226,12 @@ def user_email(email):
                 rsp_data = None
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
+
+        elif inputs["method"] == "DELETE":
+            rsp_data = user_service.delete_user({"email": email})
+            rsp_status = 200
+            rsp_txt = str(rsp_data)
+
         else:
             rsp_data = None
             rsp_status = 501
@@ -249,7 +259,6 @@ logger.debug("__name__ = " + str(__name__))
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
-
 
     logger.debug("Starting Project EB at time: " + str(datetime.now()))
     init()

@@ -2,6 +2,7 @@ import DataAccess.DataAdaptor as data_adaptor
 from abc import ABC, abstractmethod
 import pymysql.err
 
+
 class DataException(Exception):
 
     unknown_error   =   1001
@@ -10,6 +11,7 @@ class DataException(Exception):
     def __init__(self, code=unknown_error, msg="Something awful happened."):
         self.code = code
         self.msg = msg
+
 
 class BaseDataObject(ABC):
 
@@ -63,8 +65,16 @@ class UsersRDB(BaseDataObject):
 
         return result
 
+    @classmethod
+    def delete_user(cls, user_info):
+        if not user_info or not user_info["email"]:
+            raise ValueError("Error: User must be deleted by a given email.")
 
+        try:
+            sql, args = data_adaptor.create_delete(table_name="users", template=user_info)
+            res, data = data_adaptor.run_q(sql, args)
+            result = res
+        except Exception as exp:
+            raise exp
 
-
-
-
+        return result

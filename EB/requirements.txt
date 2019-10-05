@@ -1,0 +1,6 @@
+Flask==1.1.1
+Projects==1.0.9
+boto3==1.9.237
+PyJWT==1.7.1
+pymysql==0.9.3
+WTForms==2.2.1
