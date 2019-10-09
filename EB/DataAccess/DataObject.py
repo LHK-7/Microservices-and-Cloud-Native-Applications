@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
-
 import DataAccess.DataAdaptor as data_adaptor
 import pymysql.err
+
+from abc import ABC, abstractmethod
 
 
 class DataException(Exception):

@@ -198,38 +198,12 @@ def register_user():
     return render_template('register.html', form=form)
 
 
-@application.route("/api/user/update",  methods=["GET","POST"])
-def update_user():
-    global _user_service
-
-    form = registerForm(request.form)
-    if request.method == 'POST' and form.validate():
-        last_name = form.last_name.data
-        first_name = form.first_name.data
-        email = form.email.data
-        password = form.password.data
-        id = str(uuid.uuid4())
-
-        res = [id, last_name,first_name,email,password]
-        temp ={"id": res[0], "last_name": res[1], "first_name":res[2], "email": res[3], "password": res[4]}
-
-        print(res)
-        print(temp)
-
-        user_service = _get_user_service()
-        rsp = user_service.update_user(temp)
-        return render_template('register.html', form=form)
-
-        #return render_template('register.html', form=form)
-    return render_template('register.html', form=form)
-
-
 @application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
 def user_email(email):
 
     global _user_service
 
-    inputs = log_and_extract_input(demo, { "parameters": email })
+    inputs = log_and_extract_input(demo, {"parameters": email})
     rsp_data = None
     rsp_status = None
     rsp_txt = None
@@ -251,6 +225,22 @@ def user_email(email):
                 rsp_data = None
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
+
+        elif request.method == 'PUT':
+            form = registerForm(request.form)
+
+            if form.validate():
+                last_name = form.last_name.data
+                first_name = form.first_name.data
+                email = form.email.data
+                password = form.password.data
+                id = str(uuid.uuid4())
+
+                res = [id, last_name, first_name, email, password]
+                temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
+
+                user_service = _get_user_service()
+                rsp = user_service.update_user(temp)
 
         elif inputs["method"] == "DELETE":
             rsp_data = user_service.delete_user({"email": email})

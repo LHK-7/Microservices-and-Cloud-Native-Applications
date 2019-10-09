@@ -21,7 +21,6 @@ class Context:
     def get_default_context(cls):
 
         db_connect_info = os.environ['test']
-        print(db_connect_info)
         db_connect_info = json.loads(db_connect_info)
 
         ctx = { "db_connect_info": db_connect_info }
