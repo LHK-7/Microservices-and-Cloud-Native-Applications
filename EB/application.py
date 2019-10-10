@@ -4,16 +4,26 @@
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
 #
+import functools
+from functools import wraps
+from flask import g
 import uuid
-
-
+from flask import flash
 from flask import Flask, Response, request, render_template
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from datetime import datetime
+from flask import redirect
+from flask import url_for
+from flask import request
+from flask import session
 import json
-
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, EqualTo, Length
 from CustomerInfo.Users import UsersService as UserService
 from Context.Context import Context
+from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -48,6 +58,7 @@ footer_text = '</body>\n</html>'
 application = Flask(__name__)
 
 # add a rule for the index page. (Put here by AWS in the sample)
+"""
 application.add_url_rule('/', 'index', (lambda: header_text +
     say_hello() + instructions + footer_text))
 
@@ -55,10 +66,12 @@ application.add_url_rule('/', 'index', (lambda: header_text +
 # URL. Put here by AWS in the sample
 application.add_url_rule('/<username>', 'hello', (lambda username:
     header_text + say_hello(username) + home_link + footer_text))
-
+"""
 ##################################################################################################################
 # The stuff I added begins here.
-
+import os
+SECRET_KEY = os.urandom(32)
+application.config['SECRET_KEY'] = SECRET_KEY
 _default_context = None
 _user_service = None
 
@@ -91,6 +104,7 @@ def init():
 
     logger.debug("_user_service = " + str(_user_service))
 
+    g.user = None
 
 # 1. Extract the input information from the requests object.
 # 2. Log the information
@@ -152,6 +166,55 @@ def health_check():
     return rsp
 
 
+def login_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if  session:
+            return f(*args, **kwargs)
+        else:
+            flash("You need to login first")
+            return redirect(url_for('login'))
+
+    return wrap
+
+
+def register_hooks(app):
+    @app.before_request
+    def before_request():
+        g.user = None
+        if 'email' in session:
+            # This is where you'd query your database to get the user info.
+            g.user = {}
+            # Create a global with the LDAP groups the user is a member of.
+            g.ldap_groups = ldap.get_user_groups(user=session['email'])
+
+@application.before_request
+def load_logged_in_user():
+    """If a user id is stored in the session, load the user object from
+    the database into ``g.user``."""
+    user_id = session.get("email")
+
+    if user_id is None:
+        g.user = None
+    else:
+        g.user = user_id
+
+
+
+
+
+@application.route("/")
+def indexno():
+    return render_template('base.html')
+@application.route("/secrethome", methods=["GET"])
+@login_required
+def secrethome():
+    return render_template('base.html')
+
+@application.route("/home", methods=["GET"])
+def home():
+    return render_template('base.html')
+
 @application.route("/demo/<parameter>", methods=["GET", "POST"])
 def demo(parameter):
 
@@ -165,40 +228,87 @@ def demo(parameter):
     return rsp
 
 
-class registerForm(Form):
-    last_name = StringField('Last Name', [validators.Length(min=1, max=50)])
-    first_name = StringField('First Name', [validators.Length(min=1, max=50)])
-    email = StringField('Email', [validators.length(min=6,max=50)])
-    password = PasswordField('Password',[
-        validators.DataRequired()
-    ])
 
-
-@application.route("/api/user/registeration",  methods=["GET","POST"])
-def register_user():
+@application.route("/qwe")
+def qwe():
     global _user_service
+    user_service = _get_user_service()
+    rsp = user_service.get_by_email("aptent@Duismienim.com")
+    return str(rsp)
 
-    form = registerForm(request.form)
-    if request.method == 'POST' and form.validate():
-        last_name = form.last_name.data
-        first_name = form.first_name.data
-        email = form.email.data
-        password = form.password.data
-        id = str(uuid.uuid4())
 
-        res = [id, last_name,first_name,email,password]
-        temp ={'id': res[0], 'last_name': res[1], 'first_name':res[2], 'email': res[3], 'password': res[4]}
+class Register(FlaskForm):
+    last_name = StringField('last_name')
+    first_name = StringField('first_name')
+    email = StringField('email:', validators=[DataRequired()])
+    password = PasswordField('password:',validators=[DataRequired()])
+    password2 = PasswordField('password2:', validators=[DataRequired()])
+    submit = SubmitField('submit')
+@application.route("/register",  methods=["GET","POST"])
+def register():
+    ERROR = None
+    Registion = Register()
+    if request.method == 'POST':
+        
+        last_name = Registion.last_name.data
+        first_name = Registion.first_name.data
+        password = Registion.password.data
+        password2 = Registion.password2.data
+        email = Registion.email.data
+        if password == password2:
+            global _user_service
+            user_service = _get_user_service()
+            rsp = user_service.get_by_email(email)
+            if rsp == None:
+                id = str(uuid.uuid4())
+                password = generate_password_hash(password)
+                res = [id, last_name,first_name,email,password]
+                temp ={'id': res[0], 'last_name': res[1], 'first_name':res[2], 'email': res[3], 'password': res[4]}
+                rsp = user_service.create_user(temp)
+                return redirect(url_for("login"))
+            else:
+                ERROR = 'email has been registered'
+        else:
+            ERROR = 'different two passwords'
+    if ERROR:
+        flash (ERROR)
+    return render_template('register.html', form=Registion)
 
-        print(res)
-        print(temp)
 
+@application.route("/login", methods=("GET", "POST"))
+def login():
+    error = None
+  
+    """Log in a registered user by adding the user id to the session."""
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+        global _user_service
         user_service = _get_user_service()
-        rsp = user_service.create_user(temp)
-        return render_template('register.html', form=form)
+        rsp = user_service.get_by_email(email)
+        rsp = dict(rsp)
+        if rsp is None:
+            error = "Incorrect username."
+        else:
+            if not check_password_hash(rsp["password"], password):
+                error = "Incorrect password."
+            else:
+                session.clear()
+                session["email"] = rsp["email"]
+                
+                return redirect(url_for("secrethome"))
 
-        #return render_template('register.html', form=form)
-    return render_template('register.html', form=form)
+    if error:
+        flash(error)
+    return render_template("/login.html")
 
+@application.route("/logout")
+def logout():
+    """Clear the current session, including the stored user id."""
+    
+    session.clear()
+
+    return redirect(url_for("login"))
 
 @application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
 def user_email(email):
@@ -260,9 +370,10 @@ logger.debug("__name__ = " + str(__name__))
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
-
+    
     logger.debug("Starting Project EB at time: " + str(datetime.now()))
-    init()
-
+    
     application.debug = True
     application.run()
+
+    init()

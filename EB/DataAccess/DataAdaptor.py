@@ -13,14 +13,21 @@ def _get_default_connection():
 
     if _default_connection is None:
         ctx = Context.get_default_context()
-        c_info = ctx.get_context("db_connect_info")
+        c_info = {
+    "host" :'database-6156.cbl6qjbnc3gz.us-east-1.rds.amazonaws.com',
+    "user": 'admin',
+    "password": 'woshishabi',
+    "db": "innodb",
+    "charset": 'utf8mb4',
+    "port":3306
+}
 
         _default_connection = pymysql.connect(
             host=c_info['host'],
             user=c_info['user'],
             password=c_info['password'],
             port=c_info['port'],
-            db='e6156',
+            db=c_info['db'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )

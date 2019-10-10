@@ -1,5 +1,12 @@
-{% block body %}
-<h1>Register</h1>
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Register{% endblock %}</h1>
+{% endblock %}
+
+
+{% block content %}
+
 <form method="post" action="">
 
     <div class="form-group">
@@ -20,6 +27,10 @@
                      <label>password</label>
         {{form.password(class="form-control")}}
     </div>
-    <p><input type="submit" class="btn btn-primary" value="Submit"></p>
+    <div class="form-group">
+                     <label>password2</label>
+        {{form.password2(class="form-control")}}
+    </div>
+    <p><input type="submit" class="btn btn-primary" value="submit"></p>
 </form>
 {% endblock %}

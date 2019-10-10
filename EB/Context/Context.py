@@ -22,10 +22,4 @@ class Context():
     @classmethod
     def get_default_context(cls):
 
-        db_connect_info = os.environ['test']
-        db_connect_info = json.loads(db_connect_info)
-
-        ctx = { "db_connect_info": db_connect_info }
-
-        result = Context(ctx)
-        return result
+        return None
