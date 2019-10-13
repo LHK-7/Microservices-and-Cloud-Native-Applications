@@ -1,14 +1,12 @@
 import copy
-
-import os
 import json
+import os
 
-class Context():
 
-    def __init__(self, inital_ctx=None):
+class Context:
 
-        self._context = inital_ctx
-
+    def __init__(self, initial_ctx=None):
+        self._context = initial_ctx
 
     def get_context(self, ctx_name):
 

@@ -1,5 +1,6 @@
 import threading
 from threading import current_thread
+
 import DataAccess.DataAdaptor as data_adaptor
 
 threadlocal = threading.local()

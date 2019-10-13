@@ -60,3 +60,26 @@ class UsersService(BaseService):
     def delete_user(cls, user_info):
         result = UsersRDB.delete_user(user_info)
         return result
+
+    @classmethod
+    def update_user(cls, user_info):
+        for f in UsersService.required_create_fields:
+            v = user_info.get(f, None)
+            if v is None:
+                raise ServiceException(ServiceException.missing_field,
+                                       "Missing field = " + f)
+
+            if f == 'email':
+                if v.find('@') == -1:
+                    raise ServiceException(ServiceException.bad_data,
+                           "Email looks invalid: " + v)
+
+        v = user_info.get('email', None)
+        res = UsersRDB.get_by_email(v)
+        if res == None:
+            raise ServiceException(ServiceException.bad_data,
+                                   "Email not in database: " + v)
+        template = {}
+        template["email"] = v
+        result = UsersRDB.update_user(user_info=user_info,template = template)
+        return result
