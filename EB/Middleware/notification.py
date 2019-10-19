@@ -14,4 +14,4 @@ def publish_it(msg):
 
     response = client.publish(TopicArn="arn:aws:sns:us-east-1:685653151206:topic1",
                    Message=txt_msg)
-    # print("response is:", response)
+    print("response is:", response)
