@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from Context.Context import Context
 from DataAccess.DataObject import UsersRDB as UsersRDB
+from Middleware.notification import publish_it
 
 # The base classes would not be IN the project. They would be in a separate included package.
 # They would also do some things.
@@ -54,6 +55,10 @@ class UsersService(BaseService):
                     raise ServiceException(ServiceException.bad_data,
                                            "Email looks invalid: " + v)
         result = UsersRDB.create_user(user_info=user_info)
+
+        # Publish a simple message to the specified SNS topic
+        publish_it('User {} Created!'.format(user_info.get('email')))
+
         return result
 
     @classmethod

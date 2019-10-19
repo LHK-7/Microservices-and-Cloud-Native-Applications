@@ -35,7 +35,7 @@ class UsersRDB(BaseDataObject):
     @classmethod
     def get_by_email(cls, email):
 
-        sql = "select * from e6156.users where email=%s"
+        sql = "select * from users where email=%s"
         res, data = data_adaptor.run_q(sql=sql, args=(email), fetch=True)
         if data is not None and len(data) > 0:
             result = data[0]

@@ -20,7 +20,7 @@ def _get_default_connection():
             user=c_info['user'],
             password=c_info['password'],
             port=c_info['port'],
-            db='e6156',
+            db=c_info['db'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )
