@@ -1,3 +1,5 @@
+import json
+
 from abc import ABC, abstractmethod
 from Context.Context import Context
 from DataAccess.DataObject import UsersRDB as UsersRDB
@@ -57,7 +59,8 @@ class UsersService(BaseService):
         result = UsersRDB.create_user(user_info=user_info)
 
         # Publish a simple message to the specified SNS topic
-        publish_it(user_info.get('email'))
+        email = {'customers_email': user_info.get('email')}
+        publish_it(json.dumps(email))
 
         return result
 
