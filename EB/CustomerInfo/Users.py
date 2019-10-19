@@ -57,7 +57,7 @@ class UsersService(BaseService):
         result = UsersRDB.create_user(user_info=user_info)
 
         # Publish a simple message to the specified SNS topic
-        publish_it('User {} Created!'.format(user_info.get('email')))
+        publish_it(user_info.get('email'))
 
         return result
 
