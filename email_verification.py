@@ -5,19 +5,21 @@ import boto3
 import logging
 from botocore.exceptions import ClientError
 
+# Replace sender@example.com with your "From" address.
 # This address must be verified with Amazon SES.
 #SENDER = "Donald F. Ferguson <dff@cs.columbia.edu>"
 SENDER = "Info <ryliegao@gmail.com>"
-LINK = "https://7860me252b.execute-api.us-east-1.amazonaws.com/s1"
+LINK = "https://ebvcfzzsg1.execute-api.us-east-1.amazonaws.com/test/verifyemail"
 
 # Specify a configuration set. If you do not want to use a configuration
 # set, comment the following variable, and the 
 # ConfigurationSetName=CONFIGURATION_SET argument below.
 CONFIGURATION_SET = "ConfigSet"
 
+# If necessary, replace us-west-2 with the AWS Region you're using for Amazon SES.
 AWS_REGION = "us-east-1"
-ACCESS_KEY = '' # DO NOT EXPOSE keys here publicly.
-SECRET_KEY = ''
+ACCESS_KEY = 'AKIAJPYQPK23R4SL45YQ'
+SECRET_KEY = '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'
 
 # The subject line for the email.
 SUBJECT = "Cool message from Don!!!"
@@ -49,6 +51,7 @@ BODY_HTML = """<html>
 CHARSET = "UTF-8"
 
 
+
 # Create a new SES resource and specify a region.
 client = boto3.client('ses',
     region_name=AWS_REGION,
@@ -61,14 +64,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(level=logging.DEBUG)
 
-_secret = "secret"
-
 # Try to send the email.
 def send_email(em):
     try:
         logger.info("em = " + em)
 
-        tok = jwt.encode({'email': em}, key=_secret)
+        tok = jwt.encode({'email': em}, key=_secret).decode()
         logger.info("Encoded = " + str(tok))
 
         #Provide the contents of the email.
@@ -125,11 +126,31 @@ def handle_sns_event(records):
         em = json_msg["customers_email"]
         send_email(em)
 
+def handle_api_event(token):
+    decoded = jwt.decode(token.encode(), key=_secret) # type: dict
+    email = decoded["email"] # type: str
+    # update status PENDING -> ACTIVE
+
 
 def lambda_handler(event, context):
+    logger.info("\nEvent = " + json.dumps(event, indent=2) + "\n")
+    
     records = event.get("Records", None)
+    method = event.get("httpMethod", None)
+    token = event.get("token", None) # string
+    
+    logger.info("\nRecords = " + json.dumps(records, indent=2) + "\n")
+    logger.info("\nhttpMethod = " + json.dumps(method, indent=2) + "\n")
+    logger.info("\ntoken = " + json.dumps(token, indent=2) + "\n")
+    
     if records:
+        logger.info("I got an SNS event.")
         handle_sns_event(records)
+    elif token:
+        logger.info("I got an API Gateway event.")
+        handle_api_event(token)
+    else:
+        logger.info("Not sure what I got. Let it be.")
 
     return {
         "statusCode": 200,
