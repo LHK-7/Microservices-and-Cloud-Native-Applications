@@ -1,25 +1,28 @@
 import json
 import jwt
-
+import requests
 import boto3
 import logging
 from botocore.exceptions import ClientError
 
-# Replace sender@example.com with your "From" address.
 # This address must be verified with Amazon SES.
-#SENDER = "Donald F. Ferguson <dff@cs.columbia.edu>"
+# Format: SENDER = "Donald F. Ferguson <dff@cs.columbia.edu>"
 SENDER = "Info <ryliegao@gmail.com>"
-LINK = "https://ebvcfzzsg1.execute-api.us-east-1.amazonaws.com/test/verifyemail"
-ENDPOINT = "http://127.0.0.1:5000"
+
+# API Gateway
+LINK = "https://ebvcfzzsg1.execute-api.us-east-1.amazonaws.com/test/verifyemail" 
+
+# Validation RESTful server (update user status)
+ENDPOINT = "http://e6156yeah.us-east-2.elasticbeanstalk.com/" 
 
 # Specify a configuration set. If you do not want to use a configuration
 # set, comment the following variable, and the 
 # ConfigurationSetName=CONFIGURATION_SET argument below.
 CONFIGURATION_SET = "ConfigSet"
 
-# If necessary, replace us-west-2 with the AWS Region you're using for Amazon SES.
+# AWS config
 AWS_REGION = "us-east-1"
-ACCESS_KEY = '' # DO NOT expose keys to public
+ACCESS_KEY = '' # DO NOT EXPOSE keys.
 SECRET_KEY = ''
 
 # The subject line for the email.
@@ -59,7 +62,10 @@ client = boto3.client('ses',
     aws_secret_access_key=SECRET_KEY
 )
 
+# The secret key for jwt encoding.
 _secret = "secret"
+
+# Setup logging.
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(level=logging.DEBUG)
@@ -69,7 +75,7 @@ def send_email(em):
     try:
         logger.info("em = " + em)
 
-        tok = jwt.encode({'email': em}, key=_secret).decode() # type: string
+        tok = jwt.encode({'email': em}, key=_secret).decode()
         logger.info("Encoded = " + str(tok))
 
         #Provide the contents of the email.
@@ -100,9 +106,11 @@ def send_email(em):
             # following line
             #ConfigurationSetName=CONFIGURATION_SET,
             )
+            
     # Display an error if something goes wrong. 
     except ClientError as e:
         logger.info(e.response['Error']['Message'])
+        
     else:
         logger.info("Email sent! Message ID:"),
         logger.info(response['MessageId'])
@@ -127,31 +135,48 @@ def handle_sns_event(records):
         send_email(em)
 
 def handle_api_event(token):
-    decoded = jwt.decode(token.encode(), key=_secret) # type: dict
-    email = decoded["email"] # type: str
+    try:
+        decoded = jwt.decode(token.encode(), key=_secret) # type: dict
+        email = decoded["email"] # type: str
     
-    # update status PENDING -> ACTIVE
-    URL = str(ENDPOINT + "/api/user/" + email)
-    r = requests.put(url = URL) 
-    print(r)
-
+        # Call RESTful microservice. Validate the token and Update user status PENDING -> ACTIVE.
+        URL = str(ENDPOINT + "/api/user/" + email)
+        r = requests.put(url = URL)
+        # print("statusCode = " + str(r.status_code))
+        return r.content.decode()
+    except:
+        logger.error("\nError occurs when handling api event.\n")
+        return 0
 
 def lambda_handler(event, context):
-    # Log the received event
     logger.info("\nEvent = " + json.dumps(event, indent=2) + "\n")
     
-    # Parse the event
     records = event.get("Records", None)
     method = event.get("httpMethod", None)
     token = event.get("token", None) # string
     
-    # Handle the event
+    logger.info("\nRecords = " + json.dumps(records, indent=2) + "\n")
+    logger.info("\nhttpMethod = " + json.dumps(method, indent=2) + "\n")
+    logger.info("\ntoken = " + json.dumps(token, indent=2) + "\n")
+    
     if records:
         logger.info("I got an SNS event.")
         handle_sns_event(records)
     elif token:
         logger.info("I got an API Gateway event.")
-        handle_api_event(token)
+        res = handle_api_event(token)
+        # Redirect browser:
+        # Successfully activated:
+        if res == "1":
+            response={'location': 'https://www.youtube.com/watch?v=WS6jCdLFjrU'}
+        # Account already activated:
+        elif res == "None":
+            response={'location': 'https://www.uptrends.com/support/kb/account-access/already-activated'}
+        # Something wen wrong:
+        else:
+            response={'location': 'https://www.youtube.com/watch?v=t3otBjVZzT0'}
+        return response
+
     else:
         logger.info("Not sure what I got. Let it be.")
 
@@ -159,4 +184,3 @@ def lambda_handler(event, context):
         "statusCode": 200,
         "body": json.dumps('Hello from Lambda!')
     }
-
