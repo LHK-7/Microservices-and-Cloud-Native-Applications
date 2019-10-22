@@ -1,12 +1,11 @@
-import logging
 import pymysql
-
+import copy
 from Context.Context import Context
 
+import logging
 logger = logging.getLogger()
 
 _default_connection = None
-
 
 def _get_default_connection():
 
@@ -15,13 +14,14 @@ def _get_default_connection():
     if _default_connection is None:
         ctx = Context.get_default_context()
         c_info = ctx.get_context("db_connect_info")
+
         _default_connection = pymysql.connect(
             host=c_info['host'],
             user=c_info['user'],
             password=c_info['password'],
             port=c_info['port'],
             db=c_info['db'],
-            charset='utf8mb4',
+            charset=c_info['charset'],
             cursorclass=pymysql.cursors.DictCursor
         )
 
@@ -35,11 +35,10 @@ def get_connection(c_info=None):
         password=c_info['password'],
         port=c_info['port'],
         db=c_info['db'],
-        charset='utf8mb4',
+        charset=c_info['charset'],
         cursorclass=pymysql.cursors.DictCursor
     )
     return result
-
 
 def get_connection_and_cursor(connect_info=None):
 
@@ -56,7 +55,7 @@ def commit_close(cnx):
 
 
 def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
-    """
+    '''
     Helper function to run an SQL statement.
 
     :param sql: SQL template with placeholders for parameters.
@@ -67,7 +66,7 @@ def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
     :param commit: This is wizard stuff. Do not worry about it.
 
     :return: A tuple of the form (execute response, fetched data)
-    """
+    '''
 
     cursor_created = False
     connection_created = False
