@@ -13,6 +13,7 @@ def _get_default_connection():
 
     if _default_connection is None:
         ctx = Context.get_default_context()
+<<<<<<< Updated upstream
         c_info = {
     "host" :'database-6156.cbl6qjbnc3gz.us-east-1.rds.amazonaws.com',
     "user": 'admin',
@@ -21,6 +22,9 @@ def _get_default_connection():
     "charset": 'utf8mb4',
     "port":3306
 }
+=======
+        c_info = ctx.get_context("db_connect_info")
+>>>>>>> Stashed changes
 
         _default_connection = pymysql.connect(
             host=c_info['host'],
@@ -28,7 +32,7 @@ def _get_default_connection():
             password=c_info['password'],
             port=c_info['port'],
             db=c_info['db'],
-            charset='utf8mb4',
+            charset=c_info['charset'],
             cursorclass=pymysql.cursors.DictCursor
         )
 
@@ -42,7 +46,7 @@ def get_connection(c_info=None):
         password=c_info['password'],
         port=c_info['port'],
         db=c_info['db'],
-        charset='utf8mb4',
+        charset=c_info['charset'],
         cursorclass=pymysql.cursors.DictCursor
     )
     return result

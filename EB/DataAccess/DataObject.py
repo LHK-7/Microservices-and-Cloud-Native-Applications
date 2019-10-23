@@ -66,6 +66,34 @@ class UsersRDB(BaseDataObject):
         return result
 
     @classmethod
+<<<<<<< Updated upstream
+=======
+    def update_user(cls, user_info,template):
+        result = None
+        try:
+            sql, args = data_adaptor.create_update(table_name="users", new_values=user_info,template=template)
+            res, data = data_adaptor.run_q(sql, args)
+            if res != 1:
+                result = None
+            else:
+                result = res
+        except Exception as e:
+            raise DataException()
+
+        return result
+
+    @classmethod
+    def update_password(sql):
+        args = 1
+        res, data = data_adaptor.run_q(sql, args)
+        if res != 1:
+            result = None
+        else:
+            result = res
+        return result
+
+    @classmethod
+>>>>>>> Stashed changes
     def delete_user(cls, user_info):
         if not user_info or not user_info["email"]:
             raise ValueError("Error: User must be deleted by a given email.")

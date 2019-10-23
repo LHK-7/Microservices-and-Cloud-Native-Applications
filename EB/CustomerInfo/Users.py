@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from Context.Context import Context
 from DataAccess.DataObject import UsersRDB as UsersRDB
@@ -54,9 +55,31 @@ class UsersService(BaseService):
                     raise ServiceException(ServiceException.bad_data,
                                            "Email looks invalid: " + v)
         result = UsersRDB.create_user(user_info=user_info)
+<<<<<<< Updated upstream
         return result
 
     @classmethod
+=======
+
+        # Publish a simple message to the specified SNS topic
+        email = {'customers_email': user_info.get('email')}
+        publish_it(json.dumps(email))
+
+        return result
+
+    @classmethod
+    def update_user(cls, user_info):
+        v = user_info.get('email', None)
+        res = UsersRDB.get_by_email(v)
+        if res == None:
+            raise ServiceException(ServiceException.bad_data,
+                                   "Email not in database: " + v)
+        template = {'email':v}
+        result = UsersRDB.update_user(user_info=user_info,template = template)
+        return result
+
+    @classmethod
+>>>>>>> Stashed changes
     def delete_user(cls, user_info):
         result = UsersRDB.delete_user(user_info)
         return result

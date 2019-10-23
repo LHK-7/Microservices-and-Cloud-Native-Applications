@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 {% extends 'base.html' %}
 
 {% block header %}
@@ -7,6 +8,13 @@
 
 {% block content %}
 
+=======
+{% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+  {% endfor %}
+{% block body %}
+<h1>Register</h1>
+>>>>>>> Stashed changes
 <form method="post" action="">
 
     <div class="form-group">
@@ -31,6 +39,10 @@
                      <label>password2</label>
         {{form.password2(class="form-control")}}
     </div>
+<<<<<<< Updated upstream
     <p><input type="submit" class="btn btn-primary" value="submit"></p>
+=======
+    <p><input type="submit" class="btn btn-primary" value="Submit"></p>
+>>>>>>> Stashed changes
 </form>
 {% endblock %}

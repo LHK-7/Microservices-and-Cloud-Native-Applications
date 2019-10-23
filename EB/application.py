@@ -1,9 +1,16 @@
+# ENV VARS: test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
+# {"host":"database-6156.cbl6qjbnc3gz.us-east-1.rds.amazonaws.com","user": "admin","password": "woshishabi","db": "innodb","charset":"utf8mb4","port":3306}
+# Table Name MUST be "users"
 
 # Import functions and objects the microservice needs.
 # - Flask is the top-level application. You implement the application by adding methods to it.
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
+<<<<<<< Updated upstream
 #
+=======
+
+>>>>>>> Stashed changes
 import functools
 from functools import wraps
 from flask import g
@@ -24,14 +31,24 @@ from CustomerInfo.Users import UsersService as UserService
 from Context.Context import Context
 from werkzeug.security import check_password_hash
 from werkzeug.security import generate_password_hash
+<<<<<<< Updated upstream
 
+=======
+from DataAccess.DataObject import UsersRDB as UsersRDB
+import DataAccess.DataAdaptor as data_adaptor
+>>>>>>> Stashed changes
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
 #
 import logging
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
+
 
 ###################################################################################################################
 #
@@ -39,8 +56,9 @@ logger.setLevel(logging.DEBUG)
 #
 # AWS puts this function in the default started application
 # print a nice greeting.
-def say_hello(username = "World"):
+def say_hello(username="World"):
     return '<p>Hello %s!</p>\n' % username
+
 
 # AWS put this here.
 # some bits of text for the page.
@@ -55,18 +73,24 @@ footer_text = '</body>\n</html>'
 
 # EB looks for an 'application' callable by default.
 # This is the top-level application that receives and routes requests.
+
 application = Flask(__name__)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 """
 application.add_url_rule('/', 'index', (lambda: header_text +
-    say_hello() + instructions + footer_text))
+                                                say_hello() + instructions + footer_text))
 
 # add a rule when the page is accessed with a name appended to the site
 # URL. Put here by AWS in the sample
 application.add_url_rule('/<username>', 'hello', (lambda username:
+<<<<<<< Updated upstream
     header_text + say_hello(username) + home_link + footer_text))
 """
+=======
+                                                  header_text + say_hello(username) + home_link + footer_text))
+
+>>>>>>> Stashed changes
 ##################################################################################################################
 # The stuff I added begins here.
 import os
@@ -76,8 +100,10 @@ _default_context = None
 _user_service = None
 
 
-def _get_default_context():
 
+
+
+def _get_default_context():
     global _default_context
 
     if _default_context is None:
@@ -96,22 +122,28 @@ def _get_user_service():
 
 
 def init():
-
     global _default_context, _user_service
 
     _default_context = Context.get_default_context()
     _user_service = UserService(_default_context)
 
     logger.debug("_user_service = " + str(_user_service))
+<<<<<<< Updated upstream
 
     g.user = None
+=======
+import os
+SECRET_KEY = os.urandom(32)
+application.config['SECRET_KEY'] = SECRET_KEY
+_default_context = None
+_user_service = None
+>>>>>>> Stashed changes
 
 # 1. Extract the input information from the requests object.
 # 2. Log the information
 # 3. Return extracted information.
 #
 def log_and_extract_input(method, path_params=None):
-
     path = request.path
     args = dict(request.args)
     data = None
@@ -129,14 +161,14 @@ def log_and_extract_input(method, path_params=None):
 
     log_message = str(datetime.now()) + ": Method " + method
 
-    inputs =  {
+    inputs = {
         "path": path,
         "method": method,
         "path_params": path_params,
         "query_params": args,
         "headers": headers,
         "body": data
-        }
+    }
 
     log_message += " received: \n" + json.dumps(inputs, indent=2)
     logger.debug(log_message)
@@ -145,7 +177,6 @@ def log_and_extract_input(method, path_params=None):
 
 
 def log_response(method, status, data, txt):
-
     msg = {
         "method": method,
         "status": status,
@@ -159,8 +190,7 @@ def log_response(method, status, data, txt):
 # This function performs a basic health check. We will flesh this out.
 @application.route("/health", methods=["GET"])
 def health_check():
-
-    rsp_data = { "status": "healthy", "time": str(datetime.now()) }
+    rsp_data = {"status": "healthy", "time": str(datetime.now())}
     rsp_str = json.dumps(rsp_data)
     rsp = Response(rsp_str, status=200, content_type="application/json")
     return rsp
@@ -205,6 +235,7 @@ def load_logged_in_user():
 
 @application.route("/")
 def indexno():
+<<<<<<< Updated upstream
     return render_template('base.html')
 @application.route("/secrethome", methods=["GET"])
 @login_required
@@ -215,19 +246,34 @@ def secrethome():
 def home():
     return render_template('base.html')
 
+=======
+    return "render_template('base.html')"
+@application.route("/secrethome", methods=["GET"])
+@login_required
+def secrethome():
+    return "render_template('base.html')"
+
+@application.route("/home", methods=["GET"])
+def home():
+    return "render_template('base.html')"
+
+
+
+# Demo. Return the received inputs.
+>>>>>>> Stashed changes
 @application.route("/demo/<parameter>", methods=["GET", "POST"])
 def demo(parameter):
-
-    inputs = log_and_extract_input(demo, { "parameter": parameter })
+    inputs = log_and_extract_input(demo, {"parameter": parameter})
 
     msg = {
-        "/demo received the following inputs" : inputs
+        "/demo received the following inputs": inputs
     }
 
     rsp = Response(json.dumps(msg), status=200, content_type="application/json")
     return rsp
 
 
+<<<<<<< Updated upstream
 
 @application.route("/qwe")
 def qwe():
@@ -276,6 +322,56 @@ def register():
 
 
 @application.route("/login", methods=("GET", "POST"))
+=======
+class RegisterForm(FlaskForm):
+    last_name = StringField('last_name')
+    first_name = StringField('first_name')
+    email = StringField('email:', validators=[DataRequired()])
+    password = PasswordField('password:',validators=[DataRequired()])
+    password2 = PasswordField('password2:', validators=[DataRequired()])
+    submit = SubmitField('submit')
+
+# REDIRECT
+@application.route("/api/redirect", methods=["GET"])
+def redir():
+    return redirect("http://www.example.com", code=302)
+
+
+# REGISTER
+@application.route("/api/user/registeration", methods=["GET", "POST"])
+def register_user():
+    global _user_service
+    ERROR = None
+    form = RegisterForm(request.form)
+    if request.method == 'POST':
+        last_name = form.last_name.data
+        first_name = form.first_name.data
+        email = form.email.data
+        password = form.password.data
+        password2 = form.password2.data
+        id = str(uuid.uuid4())
+        if password == password2:
+            user_service = _get_user_service()
+            rsp = user_service.get_by_email(email)
+            if rsp == None:
+                password = generate_password_hash(password)
+                res = [id, last_name, first_name, email, password]
+                temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
+                rsp = user_service.create_user(temp)
+                return redirect(url_for("login"))
+            else:
+
+                ERROR = 'email has been registered'
+        else:
+            ERROR = 'different two passwords'          
+    if ERROR:
+        flash (ERROR)
+        # return render_template('register.html', form=form)
+    return render_template('register.html', form=form)
+
+
+@application.route("/api/user/login", methods=("GET", "POST"))
+>>>>>>> Stashed changes
 def login():
     error = None
   
@@ -286,22 +382,35 @@ def login():
         global _user_service
         user_service = _get_user_service()
         rsp = user_service.get_by_email(email)
+<<<<<<< Updated upstream
         rsp = dict(rsp)
         if rsp is None:
             error = "Incorrect username."
         else:
+=======
+        
+        if rsp is None:
+            error = "Incorrect username."
+        else:
+            rsp = dict(rsp)
+>>>>>>> Stashed changes
             if not check_password_hash(rsp["password"], password):
                 error = "Incorrect password."
             else:
                 session.clear()
                 session["email"] = rsp["email"]
                 
+<<<<<<< Updated upstream
                 return redirect(url_for("secrethome"))
+=======
+                return redirect(url_for("loginuser",email = email))
+>>>>>>> Stashed changes
 
     if error:
         flash(error)
     return render_template("/login.html")
 
+<<<<<<< Updated upstream
 @application.route("/logout")
 def logout():
     """Clear the current session, including the stored user id."""
@@ -309,9 +418,67 @@ def logout():
     session.clear()
 
     return redirect(url_for("login"))
+=======
+class LoggedIn(FlaskForm):
+    oldpassword = PasswordField('oldpassword:',validators=[DataRequired()])
+    password = PasswordField('password:',validators=[DataRequired()])
+    password2 = PasswordField('password2:', validators=[DataRequired()])
+    submit = SubmitField('submit')
+>>>>>>> Stashed changes
 
+
+@application.route("/api/user/<email>/detail", methods=["GET", "post"])
+def loginuser(email):
+
+    if "email" not in session:
+        return redirect(url_for("login"))
+    #if not the current user, cannot change other's information
+    ERROR = None
+    form = LoggedIn(request.form)
+    if str(email) != str(session["email"]):
+        return redirect(url_for("login"))
+
+    global _user_service
+    user_service = _get_user_service()
+    rsp = user_service.get_by_email(email)
+    post = str(rsp)
+    if request.method == "POST":
+        oldpassword = form.oldpassword.data
+        password = form.password.data
+        password2 = form.password2.data
+        rsp = dict(rsp)
+        if check_password_hash(rsp["password"], oldpassword):
+            if password == password2:
+                password = generate_password_hash(password)
+                sql = str("UPDATE users set password = " + "'" + password + "'" + " where email = " + "'" + email + "'" + ";")
+                rsp_data = data_adaptor.run_q(sql)
+                ERROR = "success"
+            else:
+                ERROR = "new passwords are not same"
+        else:
+            ERROR = "wrong old password"
+    if ERROR:
+        flash (ERROR)
+    return render_template("/user.html", form=form, post = post)
+
+@application.route("/logout")
+def logout():
+    """Clear the current session, including the stored user id."""
+    session.clear()
+    return redirect(url_for("login"))
+
+
+
+# QUERY user info by email
+@login_required
 @application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
 def user_email(email):
+    #if not the current user, cannot change other's information
+    if "email" not in session:
+        return redirect(url_for("login"))
+
+    if str(email) != str(session["email"]):
+        return redirect(url_for("login"))
 
     global _user_service
 
@@ -338,7 +505,17 @@ def user_email(email):
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
 
+<<<<<<< Updated upstream
         elif inputs["method"] == "DELETE":
+=======
+        elif request.method == 'PUT':
+            temp = {"email": email, "status": "ACTIVE"}
+            rsp_data = user_service.update_user(temp)
+            rsp_status = 200
+            rsp_txt = str(rsp_data)
+
+        elif inputs["method"] == "DELETE": # This SHOULD SET STATUS to DELETED instead of removing the tuple
+>>>>>>> Stashed changes
             rsp_data = user_service.delete_user({"email": email})
             rsp_status = 200
             rsp_txt = str(rsp_data)
