@@ -1,12 +1,7 @@
-<<<<<<< Updated upstream
-{% extends 'base.html' %}
-
-=======
 {% for message in get_flashed_messages() %}
     <div class="flash">{{ message }}</div>
   {% endfor %}
    <li><a href="{{ url_for('register_user') }}">register</a>
->>>>>>> Stashed changes
 {% block header %}
   <h1>{% block title %}Log In{% endblock %}</h1>
 {% endblock %}

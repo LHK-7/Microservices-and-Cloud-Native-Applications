@@ -7,7 +7,7 @@ CREATE TABLE `users` (
   `first_name` varchar(255) default NULL,
   `email` varchar(255) default NULL unique,
   `status` varchar(255) default NULL,
-  `password` varchar(10000),
+  `password` varchar(255),
   PRIMARY KEY (`auto_id`)
 ) AUTO_INCREMENT=1;
 

@@ -2,6 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from Context.Context import Context
 from DataAccess.DataObject import UsersRDB as UsersRDB
+from Middleware.notification import publish_it
 
 # The base classes would not be IN the project. They would be in a separate included package.
 # They would also do some things.
@@ -55,11 +56,6 @@ class UsersService(BaseService):
                     raise ServiceException(ServiceException.bad_data,
                                            "Email looks invalid: " + v)
         result = UsersRDB.create_user(user_info=user_info)
-<<<<<<< Updated upstream
-        return result
-
-    @classmethod
-=======
 
         # Publish a simple message to the specified SNS topic
         email = {'customers_email': user_info.get('email')}
@@ -79,7 +75,6 @@ class UsersService(BaseService):
         return result
 
     @classmethod
->>>>>>> Stashed changes
     def delete_user(cls, user_info):
         result = UsersRDB.delete_user(user_info)
         return result

@@ -59,15 +59,13 @@ class UsersRDB(BaseDataObject):
             if ie.args[0] == 1062:
                 raise (DataException(DataException.duplicate_key))
             else:
-                raise DataException("h1")
+                raise DataException()
         except Exception as e:
-            raise DataException("h2")
+            raise DataException()
 
         return result
 
     @classmethod
-<<<<<<< Updated upstream
-=======
     def update_user(cls, user_info,template):
         result = None
         try:
@@ -93,7 +91,6 @@ class UsersRDB(BaseDataObject):
         return result
 
     @classmethod
->>>>>>> Stashed changes
     def delete_user(cls, user_info):
         if not user_info or not user_info["email"]:
             raise ValueError("Error: User must be deleted by a given email.")
