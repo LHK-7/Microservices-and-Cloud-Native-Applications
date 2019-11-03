@@ -4,20 +4,22 @@
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
 #
-import uuid
-
-from flask import Flask, Response, request, render_template
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from datetime import datetime
 import json
-
-from CustomerInfo.Users import UsersService as UserService
-from Context.Context import Context
-
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
 #
 import logging
+import uuid
+from datetime import datetime
+
+from werkzeug.utils import redirect
+
+from EB.Context.Context import Context
+from EB.CustomerInfo.Users import UsersService as UserService
+from flask import Flask, Response, request, render_template, url_for
+from wtforms import Form, StringField, PasswordField, validators
+from datetime import datetime, timedelta
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -80,6 +82,7 @@ def _get_user_service():
 
     return _user_service
 
+
 def init():
 
     global _default_context, _user_service
@@ -127,6 +130,7 @@ def log_and_extract_input(method, path_params=None):
 
     return inputs
 
+
 def log_response(method, status, data, txt):
 
     msg = {
@@ -161,6 +165,7 @@ def demo(parameter):
     rsp = Response(json.dumps(msg), status=200, content_type="application/json")
     return rsp
 
+
 class registerForm(Form):
     last_name = StringField('Last Name', [validators.Length(min=1, max=50)])
     first_name = StringField('First Name', [validators.Length(min=1, max=50)])
@@ -168,6 +173,10 @@ class registerForm(Form):
     password = PasswordField('Password',[
         validators.DataRequired()
     ])
+
+@application.route("/resource", methods=["GET","POST"])
+def get_resource():
+    pass
 
 @application.route("/api/user/registeration",  methods=["GET","POST"])
 def register_user():
@@ -182,7 +191,7 @@ def register_user():
         id = str(uuid.uuid4())
 
         res = [id, last_name,first_name,email,password]
-        temp ={'id': res[0], 'last_name': res[1], 'first_name':res[2], 'email': res[3], 'password': res[4]}
+        temp ={"id": res[0], "last_name": res[1], "first_name":res[2], "email": res[3], "password": res[4]}
 
         print(res)
         print(temp)
@@ -194,18 +203,36 @@ def register_user():
         #return render_template('register.html', form=form)
     return render_template('register.html', form=form)
 
+@application.route("/api/user/login", methods=["GET","POST"])
+def login():
+    error = None
+    if request.method == 'POST':
+        user = request.form['username']
+        password = request.form['password']
+        tmp = {user:password}
+        user_service = _get_user_service()
+        res = user_service.validate(tmp)
+        if res:
+            return redirect(url_for('helloworld'))
+        else:
+            error = 'Invalid Credentials. Please try again.'
+    return render_template('login.html', error=error)
+
+@application.route("/api/user/helloworld", methods=["GET"])
+def helloworld():
+    return render_template('HelloWorld.html')
+
 @application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
 def user_email(email):
 
     global _user_service
 
-    inputs = log_and_extract_input(demo, { "parameters": email })
+    inputs = log_and_extract_input(demo, {"parameters": email})
     rsp_data = None
     rsp_status = None
     rsp_txt = None
 
     try:
-
         user_service = _get_user_service()
 
         logger.error("/email: _user_service = " + str(user_service))
@@ -222,6 +249,28 @@ def user_email(email):
                 rsp_data = None
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
+
+        elif request.method == 'PUT':
+            form = registerForm(request.form)
+
+            if form.validate():
+                last_name = form.last_name.data
+                first_name = form.first_name.data
+                email = form.email.data
+                password = form.password.data
+                id = str(uuid.uuid4())
+
+                res = [id, last_name, first_name, email, password]
+                temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
+
+                user_service = _get_user_service()
+                rsp = user_service.update_user(temp)
+
+        elif inputs["method"] == "DELETE":
+            rsp_data = user_service.delete_user({"email": email})
+            rsp_status = 200
+            rsp_txt = str(rsp_data)
+
         else:
             rsp_data = None
             rsp_status = 501
@@ -249,7 +298,6 @@ logger.debug("__name__ = " + str(__name__))
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
-
 
     logger.debug("Starting Project EB at time: " + str(datetime.now()))
     init()
