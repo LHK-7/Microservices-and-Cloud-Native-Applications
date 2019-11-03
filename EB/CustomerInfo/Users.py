@@ -1,9 +1,13 @@
+import json
+
 from abc import ABC, abstractmethod
-from Context.Context import Context
-from DataAccess.DataObject import UsersRDB as UsersRDB
+from EB.Context.Context import Context
+from EB.DataAccess.DataObject import UsersRDB as UsersRDB
+from EB.Middleware.notification import publish_it
 
 # The base classes would not be IN the project. They would be in a separate included package.
 # They would also do some things.
+
 
 class ServiceException(Exception):
 
@@ -16,10 +20,11 @@ class ServiceException(Exception):
         self.msg = msg
 
 
-class BaseService():
+class BaseService(ABC):
 
     missing_field   =   2001
 
+    @abstractmethod
     def __init__(self):
         pass
 
@@ -29,12 +34,10 @@ class UsersService(BaseService):
     required_create_fields = ['last_name', 'first_name', 'email', 'password']
 
     def __init__(self, ctx=None):
-
+        super().__init__()
         if ctx is None:
             ctx = Context.get_default_context()
-
         self._ctx = ctx
-
 
     @classmethod
     def get_by_email(cls, email):
@@ -44,9 +47,30 @@ class UsersService(BaseService):
 
     @classmethod
     def create_user(cls, user_info):
+        for f in UsersService.required_create_fields:
+            v = user_info.get(f, None)
+            if v is None:
+                raise ServiceException(ServiceException.missing_field,
+                                       "Missing field = " + f)
+            if f == 'email':
+                if v.find('@') == -1:
+                    raise ServiceException(ServiceException.bad_data,
+                                           "Email looks invalid: " + v)
+        result = UsersRDB.create_user(user_info=user_info)
 
+        # Publish a simple message to the specified SNS topic
+        email = {'customers_email': user_info.get('email')}
+        publish_it(json.dumps(email))
 
+        return result
 
+    @classmethod
+    def delete_user(cls, user_info):
+        result = UsersRDB.delete_user(user_info)
+        return result
+
+    @classmethod
+    def update_user(cls, user_info):
         for f in UsersService.required_create_fields:
             v = user_info.get(f, None)
             if v is None:
@@ -58,11 +82,24 @@ class UsersService(BaseService):
                     raise ServiceException(ServiceException.bad_data,
                            "Email looks invalid: " + v)
 
-        result = UsersRDB.create_user(user_info=user_info)
-
+        v = user_info.get('email', None)
+        res = UsersRDB.get_by_email(v)
+        if res == None:
+            raise ServiceException(ServiceException.bad_data,
+                                   "Email not in database: " + v)
+        template = {}
+        template["email"] = v
+        result = UsersRDB.update_user(user_info=user_info,template = template)
         return result
 
+    @classmethod
+    def validate(cls, info):
+        for user, password in info.items():
+            user_email = user
+            user_password = password
 
-
-
-
+        res = UsersRDB.validate_info(user_email)
+        if res == user_password:
+            return True
+        else:
+            return False
