@@ -1,13 +1,12 @@
 import pymysql
 import copy
-from ..Context.Context import Context
-
 import logging
+from EB.Context.Context import Context
+
 
 logger = logging.getLogger()
 
 _default_connection = None
-
 
 def _get_default_connection():
     global _default_connection
@@ -41,7 +40,6 @@ def get_connection(c_info=None):
     )
     return result
 
-
 def get_connection_and_cursor(connect_info=None):
     c_info = get_connection(connect_info)
     cur = c_info.cursor()
@@ -55,7 +53,7 @@ def commit_close(cnx):
 
 
 def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
-    """
+    '''
     Helper function to run an SQL statement.
 
     :param sql: SQL template with placeholders for parameters.
@@ -66,7 +64,7 @@ def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
     :param commit: This is wizard stuff. Do not worry about it.
 
     :return: A tuple of the form (execute response, fetched data)
-    """
+    '''
 
     cursor_created = False
     connection_created = False
