@@ -1,14 +1,14 @@
 import pymysql
 import copy
-from Context.Context import Context
-
 import logging
+from EB.Context.Context import Context
+
+
 logger = logging.getLogger()
 
 _default_connection = None
 
 def _get_default_connection():
-
     global _default_connection
 
     if _default_connection is None:
@@ -41,7 +41,6 @@ def get_connection(c_info=None):
     return result
 
 def get_connection_and_cursor(connect_info=None):
-
     c_info = get_connection(connect_info)
     cur = c_info.cursor()
 
@@ -49,7 +48,6 @@ def get_connection_and_cursor(connect_info=None):
 
 
 def commit_close(cnx):
-
     cnx.commit()
     cnx.close()
 
@@ -100,7 +98,7 @@ def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
             conn.commit()
 
     except Exception as e:
-        raise(e)
+        raise (e)
 
     return (res, data)
 
@@ -125,9 +123,10 @@ def create_select(table_name, template, fields, order_by=None, limit=None, offse
 
     w_clause, args = template_to_where_clause(template)
 
-    sql = "select " + field_list + " from " +  table_name + " " + w_clause
+    sql = "select " + field_list + " from " + table_name + " " + w_clause
 
     return (sql, args)
+
 
 def template_to_where_clause(template):
     """
@@ -142,7 +141,7 @@ def template_to_where_clause(template):
         args = []
         terms = []
 
-        for k,v in template.items():
+        for k, v in template.items():
             terms.append(" " + k + "=%s ")
             args.append(v)
 
@@ -168,14 +167,14 @@ def create_insert(table_name, row):
 
     # This is paranoia. I know that calling keys() and values() should return in matching order,
     # but in the long term only the paranoid survive.
-    for k,v in row.items():
+    for k, v in row.items():
         cols.append(k)
         vals.append(v)
 
     col_clause = "(" + ",".join(cols) + ") "
 
     no_cols = len(cols)
-    terms = ["%s"]*no_cols
+    terms = ["%s"] * no_cols
     terms = ",".join(terms)
     value_clause = " values (" + terms + ")"
 
@@ -194,7 +193,7 @@ def create_update(table_name, new_values, template):
     set_terms = []
     args = []
 
-    for k,v in new_values.items():
+    for k, v in new_values.items():
         set_terms.append(k + "=%s")
         args.append(v)
 
@@ -205,7 +204,7 @@ def create_update(table_name, new_values, template):
     # the combined args list.
     args.extend(w_args)
 
-    sql = "update " + table_name + " set " + s_clause + " "+ w_clause
+    sql = "update " + table_name + " set " + s_clause + " " + w_clause
 
     return sql, args
 
