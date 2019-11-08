@@ -1,6 +1,6 @@
 import logging
 
-import Utils.Environment as env
+from ..Utils import Environment as env
 
 
 def t1():

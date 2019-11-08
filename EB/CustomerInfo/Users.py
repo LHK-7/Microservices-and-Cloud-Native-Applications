@@ -1,8 +1,8 @@
 import json
 from abc import ABC, abstractmethod
-from Context.Context import Context
-from DataAccess.DataObject import UsersRDB as UsersRDB
-from Middleware.notification import publish_it
+from ..Context import Context
+from ..DataAccess.DataObject import UsersRDB as UsersRDB
+from ..Middleware.notification import publish_it
 
 # The base classes would not be IN the project. They would be in a separate included package.
 # They would also do some things.

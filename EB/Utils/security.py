@@ -1,5 +1,4 @@
 import jwt
-
 _secret = "secret"
 
 

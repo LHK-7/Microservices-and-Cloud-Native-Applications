@@ -15,8 +15,8 @@ from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from datetime import datetime
 import json
 
-from CustomerInfo.Users import UsersService as UserService
-from Context.Context import Context
+from .CustomerInfo.Users import UsersService as UserService
+from .Context.Context import Context
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
