@@ -15,8 +15,8 @@ from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from datetime import datetime
 import json
 
-from .CustomerInfo.Users import UsersService as UserService
-from .Context.Context import Context
+from EB.CustomerInfo.Users import UsersService as UserService, to_etag
+from EB.Context.Context import Context
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -145,25 +145,31 @@ def log_response(method, status, data, txt):
 
 
 # This function performs a basic health check. We will flesh this out.
-@application.route("/health", methods=["GET"])
-def health_check():
-    rsp_data = {"status": "healthy", "time": str(datetime.now())}
-    rsp_str = json.dumps(rsp_data)
-    rsp = Response(rsp_str, status=200, content_type="application/json")
-    return rsp
+# @application.route("/health", methods=["GET"])
+# def health_check():
+#     rsp_data = {"status": "healthy", "time": str(datetime.now())}
+#     rsp_str = json.dumps(rsp_data)
+#     rsp = Response(rsp_str, status=200, content_type="application/json")
+#     return rsp
 
 
-# Demo. Return the received inputs.
-@application.route("/demo/<parameter>", methods=["GET", "POST"])
-def demo(parameter):
-    inputs = log_and_extract_input(demo, {"parameter": parameter})
+# # Demo. Return the received inputs.
+# @application.route("/demo/<parameter>", methods=["GET", "POST"])
+# def demo(parameter):
+#     inputs = log_and_extract_input(demo, {"parameter": parameter})
+#
+#     msg = {
+#         "/demo received the following inputs": inputs
+#     }
+#
+#     rsp = Response(json.dumps(msg), status=200, content_type="application/json")
+#     return rsp
 
-    msg = {
-        "/demo received the following inputs": inputs
-    }
 
-    rsp = Response(json.dumps(msg), status=200, content_type="application/json")
-    return rsp
+# # REDIRECT
+# @application.route("/api/redirect", methods=["GET"])
+# def redir():
+#     return redirect("http://www.example.com", code=302)
 
 
 class RegisterForm(Form):
@@ -174,13 +180,7 @@ class RegisterForm(Form):
         validators.DataRequired()
     ])
 
-# REDIRECT
-@application.route("/api/redirect", methods=["GET"])
-def redir():
-    return redirect("http://www.example.com", code=302)
 
-
-# REGISTER
 @application.route("/api/user/registeration", methods=["GET", "POST"])
 def register_user():
     global _user_service
@@ -203,11 +203,10 @@ def register_user():
         rsp = user_service.create_user(temp)
         return render_template('register.html', form=form)
 
-        # return render_template('register.html', form=form)
     return render_template('register.html', form=form)
 
-# QUERY user info by email
-@application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
+
+@application.route("/api/user/<email>", methods=["GET", "PUT", "POST", "DELETE"])
 def user_email(email):
     global _user_service
 
@@ -226,6 +225,7 @@ def user_email(email):
             rsp = user_service.get_by_email(email)
 
             if rsp is not None:
+                etag = to_etag(rsp)
                 rsp_data = rsp
                 rsp_status = 200
                 rsp_txt = "OK"
@@ -236,11 +236,30 @@ def user_email(email):
 
         elif request.method == 'PUT':
             temp = {"email": email, "status": "ACTIVE"}
-            rsp_data = user_service.update_user(temp)
+            rsp_data = user_service.activate_user(temp)
             rsp_status = 200
             rsp_txt = str(rsp_data)
 
-        elif inputs["method"] == "DELETE": # This SHOULD SET STATUS to DELETED instead of removing the tuple
+        elif request.method == 'POST':
+            client_etag = request.headers["ETag"]
+
+            # form = RegisterForm(request.form)
+            # if form.validate():
+            #     last_name = form.last_name.data
+            #     first_name = form.first_name.data
+            #     email = form.email.data
+            #     password = form.password.data
+            #     id = str(uuid.uuid4())
+            #
+            #     res = [id, last_name, first_name, email, password]
+            #     temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
+            temp = request.json
+            temp["email"] = email
+            rsp_data = user_service.update_user(temp, client_etag)
+            rsp_status = 200
+            rsp_txt = str(rsp_data)
+
+        elif inputs["method"] == "DELETE":  # This SHOULD SET STATUS to DELETED instead of removing the tuple
             rsp_data = user_service.delete_user({"email": email})
             rsp_status = 200
             rsp_txt = str(rsp_data)
@@ -252,6 +271,8 @@ def user_email(email):
 
         if rsp_data is not None:
             full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
+            if inputs["method"] == "GET":
+                full_rsp.headers["ETag"] = etag
         else:
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
 
@@ -268,11 +289,11 @@ def user_email(email):
 
 
 logger.debug("__name__ = " + str(__name__))
+
 # run the app.
 if __name__ == "__main__":
     # Setting debug to True enables debug output. This line should be
     # removed before deploying a production app.
-
     logger.debug("Starting Project EB at time: " + str(datetime.now()))
     init()
 
