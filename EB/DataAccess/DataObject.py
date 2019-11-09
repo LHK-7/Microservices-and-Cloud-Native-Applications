@@ -1,4 +1,4 @@
-from ..DataAccess import DataAdaptor as data_adaptor
+from EB.DataAccess import DataAdaptor as data_adaptor
 from abc import ABC, abstractmethod
 import pymysql.err
 
