@@ -1,4 +1,5 @@
-# ENV VARS: test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
+# ENV VARS:
+# test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
 # {"host":"database-6156.cbl6qjbnc3gz.us-east-1.rds.amazonaws.com","user": "admin","password": "woshishabi","db": "innodb","charset":"utf8mb4","port":3306}
 # Table Name MUST be "users"
 
@@ -7,21 +8,22 @@
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
 
-import uuid
-
-from flask import Flask, Response, request, render_template
-from werkzeug.utils import redirect
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from datetime import datetime
 import json
-
-from EB.CustomerInfo.Users import UsersService as UserService, to_etag
-from EB.Context.Context import Context
-
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
 #
 import logging
+import uuid
+from datetime import datetime
+
+from flask import Flask, Response, request, render_template
+from wtforms import Form, StringField, PasswordField, validators
+
+from EB.Context.Context import Context
+from EB.CustomerInfo.Users import UsersService as UserService, to_etag
+
+from EB.DataAccess.DataObject import UsersRDB as UsersRDB
+import EB.DataAccess.DataAdaptor as data_adaptor
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
@@ -94,6 +96,26 @@ def init():
     _user_service = UserService(_default_context)
 
     logger.debug("_user_service = " + str(_user_service))
+
+
+# encrypt for login_required
+# import os
+#
+# SECRET_KEY = os.urandom(32)
+# application.config['SECRET_KEY'] = SECRET_KEY
+#
+#
+# def login_required(f):
+#     @wraps(f)
+#     def wrap(*args, **kwargs):
+#         if  session: # retrieve info from session storage
+#             return f(*args, **kwargs)
+#         else:
+#             flash("You need to login first")
+#             return redirect(url_for('login'))
+#
+#     return wrap
+
 
 
 # 1. Extract the input information from the requests object.
@@ -286,6 +308,17 @@ def user_email(email):
     log_response("/email", rsp_status, rsp_data, rsp_txt)
 
     return full_rsp
+
+
+
+@application.route("/api/profile/<email>", methods=["GET", "POST","DELETE"])
+def profile(email):
+    global _user_service
+    user_service = _get_user_service()
+    if request.method == "GET":
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"")
+        rsp_data = data_adaptor.run_q(sql)
+        return json.dumps(rsp_data)
 
 
 logger.debug("__name__ = " + str(__name__))
