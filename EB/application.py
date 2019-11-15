@@ -449,7 +449,7 @@ def profile_1():
         return redirect(url_for("profile_2", email=email))
 
 
-@application.route("/api/profile/<email>", methods=["GET", "POST", "DELETE"])
+@application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
 def profile_2(email):
     global _user_service
     form = Profile2(request.form)
@@ -467,7 +467,7 @@ def profile_2(email):
         # post = rsp + address_post
         post = json.dumps(post)
 
-    elif request.method == "POST":
+    elif request.method == "PUT":
         post = "update success"
 
         Email = form.Email.data
@@ -493,7 +493,7 @@ def profile_2(email):
             sql = str(
                 "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
             rsp_data = data_adaptor.run_q(sql)
-            print(sql)
+            # print(sql)
         if Telephone:
             sql = str(
                 "UPDATE profile SET value = " + "\"" + Telephone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")

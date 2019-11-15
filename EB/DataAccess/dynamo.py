@@ -63,7 +63,6 @@ def getAddress(address_id):
         ReturnConsumedCapacity='TOTAL',
         TableName='address'
     )
-    print("response = ", response)
     return response
 
 
@@ -108,5 +107,4 @@ def updateAddress(address, address_id):
         TableName='address',
         UpdateExpression='SET #C = :c, #D = :d, #E = :e, #F = :f, #G = :g',
     )
-    print("response = ", response)
     return response
