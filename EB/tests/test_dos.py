@@ -5,7 +5,7 @@ import DataAccess.DataAdaptor as data_adaptor
 
 threadlocal = threading.local()
 
-# TODO: We should read this information from the environment.
+# We should read this information from the environment.
 default_connect_info =  {
     "host" :'localhost',
     "user": 'dbuser',

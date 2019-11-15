@@ -1,29 +1,29 @@
 # ENV VARS:
 # test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
-# {"host":"database-6156.cbl6qjbnc3gz.us-east-1.rds.amazonaws.com","user": "admin","password": "woshishabi","db": "innodb","charset":"utf8mb4","port":3306}
-# Table Name MUST be "users"
-
-# Import functions and objects the microservice needs.
-# - Flask is the top-level application. You implement the application by adding methods to it.
-# - Response enables creating well-formed HTTP/REST responses.
-# - requests enables accessing the elements of an incoming HTTP/REST request.
 
 import json
-# Setup and use the simple, common Python logging framework. Send log messages to the console.
-# The application should get the log level out of the context. We will change later.
-#
-import logging
+import os
 import uuid
 from datetime import datetime
 
-from flask import Flask, Response, request, render_template
-from wtforms import Form, StringField, PasswordField, validators
+# - Flask is the top-level application. You implement the application by adding methods to it.
+# - Response enables creating well-formed HTTP/REST responses.
+# - requests enables accessing the elements of an incoming HTTP/REST request.
+from flask import Flask, Response, request, render_template, redirect, url_for
+from flask_wtf import FlaskForm
+from wtforms import Form, StringField, PasswordField, validators, SubmitField
+from smartystreets_python_sdk import StaticCredentials, exceptions, ClientBuilder
+from smartystreets_python_sdk.us_street import Lookup
 
+import EB.DataAccess.DataAdaptor as data_adaptor
+import EB.DataAccess.dynamo as dynamo
 from EB.Context.Context import Context
 from EB.CustomerInfo.Users import UsersService as UserService, to_etag
 
-from EB.DataAccess.DataObject import UsersRDB as UsersRDB
-import EB.DataAccess.DataAdaptor as data_adaptor
+
+# Setup and use the simple, common Python logging framework. Send log messages to the console.
+# The application should get the log level out of the context. We will change later.
+import logging
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
@@ -98,13 +98,11 @@ def init():
     logger.debug("_user_service = " + str(_user_service))
 
 
-# encrypt for login_required
-# import os
-#
-# SECRET_KEY = os.urandom(32)
-# application.config['SECRET_KEY'] = SECRET_KEY
-#
-#
+# Encrypt session
+SECRET_KEY = os.urandom(32)
+application.config['SECRET_KEY'] = SECRET_KEY
+
+
 # def login_required(f):
 #     @wraps(f)
 #     def wrap(*args, **kwargs):
@@ -117,12 +115,10 @@ def init():
 #     return wrap
 
 
-
 # 1. Extract the input information from the requests object.
 # 2. Log the information
 # 3. Return extracted information.
-#
-def log_and_extract_input(method, path_params=None):
+def log_and_extract_input(path_params=None):
     path = request.path
     args = dict(request.args)
     data = None
@@ -175,7 +171,7 @@ def log_response(method, status, data, txt):
 #     return rsp
 
 
-# # Demo. Return the received inputs.
+# Demo. Return the received inputs.
 # @application.route("/demo/<parameter>", methods=["GET", "POST"])
 # def demo(parameter):
 #     inputs = log_and_extract_input(demo, {"parameter": parameter})
@@ -204,7 +200,7 @@ class RegisterForm(Form):
 
 
 @application.route("/api/user/registeration", methods=["GET", "POST"])
-def register_user():
+def user_register():
     global _user_service
 
     form = RegisterForm(request.form)
@@ -232,7 +228,7 @@ def register_user():
 def user_email(email):
     global _user_service
 
-    inputs = log_and_extract_input(demo, {"parameters": email})
+    inputs = log_and_extract_input({"parameters": email})
     rsp_data = None
     rsp_status = None
     rsp_txt = None
@@ -240,7 +236,7 @@ def user_email(email):
     try:
         user_service = _get_user_service()
 
-        logger.error("/email: _user_service = " + str(user_service))
+        # logger.error("/email: _user_service = " + str(user_service))
 
         if inputs["method"] == "GET":
 
@@ -256,13 +252,13 @@ def user_email(email):
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
 
-        elif request.method == 'PUT':
+        elif inputs["method"] == 'PUT':
             temp = {"email": email, "status": "ACTIVE"}
             rsp_data = user_service.activate_user(temp)
             rsp_status = 200
             rsp_txt = str(rsp_data)
 
-        elif request.method == 'POST':
+        elif inputs["method"] == 'POST':
             client_etag = request.headers["ETag"]
 
             # form = RegisterForm(request.form)
@@ -310,15 +306,225 @@ def user_email(email):
     return full_rsp
 
 
+class Profile1(FlaskForm):
+    user = StringField('user')
+    Email = StringField('Email')
+    Email_sub = StringField('Email_sub')
+    Telephone = StringField('Telephone')
+    Telephone_sub = StringField('Telephone_sub')
+    Address_zipcode = StringField('Address_zipcode')
+    Address_State = StringField('Address_State')
+    Address_City = StringField('Address_City')
+    Address_Street = StringField('Address_Street')
+    Address_Street2 = StringField('Address_Street2')
+    submit = SubmitField('submit')
 
-@application.route("/api/profile/<email>", methods=["GET", "POST","DELETE"])
-def profile(email):
+
+class Profile2(FlaskForm):
+    Email = StringField('Email')
+    Email_sub = StringField('Email_sub')
+    Telephone = StringField('Telephone')
+    Telephone_sub = StringField('Telephone_sub')
+    Address_zipcode = StringField('Address_zipcode')
+    Address_State = StringField('Address_State')
+    Address_City = StringField('Address_City')
+    Address_Street = StringField('Address_Street')
+    Address_Street2 = StringField('Address_Street2')
+    submit = SubmitField('submit')
+    delete = SubmitField('delete')
+
+
+def ssvalid(d):
+    auth_id = "8715bcc7-e3d8-b3b4-ed1f-c7485e2d6002"
+    auth_token = "vSQrfCmQIGHIW0WTn9J7"
+    credentials = StaticCredentials(auth_id, auth_token)
+    client = ClientBuilder(credentials).build_us_street_api_client()
+    lookup = Lookup()
+    lookup.input_id = "1"  # Optional ID from your system
+    lookup.street = d["street"]
+    lookup.street2 = d["street2"]
+    lookup.secondary = ""
+    lookup.city = d["city"]
+    lookup.state = d["state"]
+    lookup.zipcode = d["zipcode"]
+    lookup.candidates = 3
+    lookup.match = "Invalid"  # "invalid" is th
+    try:
+        client.send_lookup(lookup)
+    except exceptions.SmartyException as err:
+        return err
+
+    result = lookup.result
+
+    # if not result:
+    #     return ("No candidates. This means the address is not valid.")
+
+    # first_candidate = result[0]
+    # print("ZIP Code: " + first_candidate.components.zipcode)
+    # print("County: " + first_candidate.metadata.county_name)
+    # print("Latitude: {}".format(first_candidate.metadata.latitude))
+    # print("Longitude: {}".format(first_candidate.metadata.longitude))
+
+    # return ("Address is valid.")
+    return result
+
+
+# query string: ?email=<email>
+@application.route("/api/profile", methods=["GET", "POST"])
+def profile_1():
     global _user_service
-    user_service = _get_user_service()
+
+    email = request.args.get("email")
+
+    form = Profile1(request.form)
+    Email = form.Email.data
+    Email_sub = form.Email_sub.data
+    Telephone = form.Telephone.data
+    Telephone_sub = form.Telephone_sub.data
+    Address_zipcode = form.Address_zipcode.data
+    Address_State = form.Address_State.data
+    Address_City = form.Address_City.data
+    Address_Street = form.Address_Street.data
+    Address_Street2 = form.Address_Street2.data
+    addressInputTrue = Address_zipcode or Address_State or Address_City or Address_Street or Address_Street2
+    address = {"zipcode": Address_zipcode, "state": Address_State, "city": Address_City, "street": Address_Street,
+               "street2": Address_Street2}
+
     if request.method == "GET":
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"")
+        post = []
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
+        # print(sql)
         rsp_data = data_adaptor.run_q(sql)
-        return json.dumps(rsp_data)
+        # print("\n", rsp_data)
+        post.append(rsp_data)
+        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"address_id\"" + ";")
+        rsp_data = data_adaptor.run_q(sql)
+        print(rsp_data[1], type(rsp_data[1]))
+        # print("address_id = ", json.dumps(address_id))
+        # address = getAddress(address_id)
+        post.append(address)
+        post = json.dumps(post)
+        # TODO: return links:[]
+        return render_template("profile.html", form=form, post=post)
+
+    elif request.method == "POST":
+        if addressInputTrue:
+            if not ssvalid(address):
+                return "No candidates. This means the address is not valid. Please go back and submit again."
+            address_id = dynamo.addAddress(address)
+            sql = str(
+                "INSERT INTO profile (user, value, type, subtype) VALUES ("
+                + "\"" + email + "\""
+                + ", "
+                + "\"" + address_id + "\""
+                + ", "
+                + "\"address_id\""
+                + ", "
+                + "\"N.A.\""
+                + ");")
+            rsp_data = data_adaptor.run_q(sql)
+        if Email:
+            sql = str(
+                "INSERT INTO profile (user, value, type, subtype) VALUES ("
+                + "\"" + email + "\""
+                + ", "
+                + "\"" + Email + "\""
+                + ", "
+                + "\"Email\""
+                + ", "
+                + "\"" + Email_sub + "\""
+                + ");")
+            rsp_data = data_adaptor.run_q(sql)
+        if Telephone:
+            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
+                      + "\"" + email + "\""
+                      + ", "
+                      + "\"" + Telephone + "\""
+                      + ", "
+                      + "\"Telephone\""
+                      + ", "
+                      + "\"" + Telephone_sub + "\""
+                      + ");")
+            rsp_data = data_adaptor.run_q(sql)
+        return redirect(url_for("profile_2", email=email))
+
+
+@application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
+def profile_2(email):
+    global _user_service
+    form = Profile2(request.form)
+
+    if request.method == "GET":
+        post = []
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
+        rsp_data = data_adaptor.run_q(sql)
+        # print("\n", rsp_data)
+        post.append(rsp_data)
+        # sql = str("SELECT address_number FROM profile where user = " + "\"" + email + "\"" + ";")
+        # post.append(rsp_data)
+        # addnumber = int(data_adaptor.run_q(sql))
+        # address_post = getAddress(addnumber)
+        # post = rsp + address_post
+        post = json.dumps(post)
+
+    elif request.method == "PUT":
+        post = "update success"
+
+        Email = form.Email.data
+        Email_sub = form.Email_sub.data
+        Telephone = form.Telephone.data
+        Telephone_sub = form.Telephone_sub.data
+        Address_zipcode = form.Address_zipcode.data
+        Address_State = form.Address_State.data
+        Address_City = form.Address_City.data
+        Address_Street = form.Address_Street.data
+        Address_Street2 = form.Address_Street2.data
+        addressInputTrue = Address_zipcode or Address_State or Address_City or Address_Street or Address_Street2
+        address = {"zipcode": Address_zipcode, "state": Address_State, "city": Address_City, "street": Address_Street,
+                   "street2": Address_Street2}
+
+        if addressInputTrue:
+            if not ssvalid(address):
+                return "No candidates. This means the address is not valid. Please go back and submit again."
+            sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = address_id")
+            address_id = data_adaptor.run_q(sql)
+            dynamo.updateAddress(address, address_id)
+        if Email:
+            sql = str(
+                "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
+            rsp_data = data_adaptor.run_q(sql)
+            print(sql)
+        if Telephone:
+            sql = str(
+                "UPDATE profile SET value = " + "\"" + Telephone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
+            rsp_data = data_adaptor.run_q(sql)
+
+    elif request.method == "DELETE":
+        # print("email = ", email)
+        sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
+        rsp_data = data_adaptor.run_q(sql)
+        return redirect(url_for("profile_2", email=email))
+
+    return render_template("profile2.html", form=form, post=post)
+
+
+@application.route("/api/customers/<email>/profile", methods=["GET"])
+def show_profile(email):
+    global _user_service
+    if request.method == "GET":
+        post = []
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
+        rsp_data = data_adaptor.run_q(sql)
+        # print("\n", rsp_data)
+        post.append(rsp_data)
+        # sql = str("SELECT address_number FROM profile where user = " + "\"" + email + "\"" + ";")
+        # post.append(rsp_data)
+        # addnumber = int(data_adaptor.run_q(sql))
+        # address_post = getAddress(addnumber)
+        # post = rsp + address_post
+        post = json.dumps(post)
+    return post
 
 
 logger.debug("__name__ = " + str(__name__))

@@ -1,0 +1,21 @@
+{% block content %}
+<a1>{{ post}}</a1>
+<form method="PUT">
+        {{ form.Email.label }}{{ form.Email }}<br>
+        {{ form.Email_sub.label }}{{ form.Email_sub }}<br>
+        {{ form.Telephone.label }}{{ form.Telephone }}<br>
+		{{ form.Telephone_sub.label }}{{ form.Telephone_sub }}<br>
+        {{ form.Address_zipcode.label }}{{ form.Address_zipcode }}<br>
+        {{ form.Address_State.label }}{{ form.Address_State }}<br>
+        {{ form.Address_City.label }}{{ form.Address_City }}<br>
+        {{ form.Address_Street.label }}{{ form.Address_Street }}<br>
+        {{ form.Address_Street2.label }}{{ form.Address_Street2 }}<br>
+        {{ form.submit }}
+    </form>
+<form method="DELETE">
+        {{ form.delete }}
+    </form>
+
+
+
+{% endblock %}
