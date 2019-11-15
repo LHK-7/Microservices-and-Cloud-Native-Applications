@@ -214,8 +214,8 @@ def user_register():
         res = [id, last_name, first_name, email, password]
         temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
 
-        print(res)
-        print(temp)
+        # print(res)
+        # print(temp)
 
         user_service = _get_user_service()
         rsp = user_service.create_user(temp)
@@ -369,6 +369,18 @@ def ssvalid(d):
     return result
 
 
+@application.route("/addresses", methods=["POST"])
+def postAddressService(address):
+    if request.method == "POST":
+        return dynamo.addAddress(address)
+
+
+@application.route("/addresses/<address_id>", methods=["GET"])
+def getAddressidService(address_id):
+    if request.method == "GET":
+        return dynamo.getAddress(address_id)
+
+
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_1():
@@ -400,11 +412,28 @@ def profile_1():
         sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
                   + "AND type = \"address_id\"" + ";")
         rsp_data = data_adaptor.run_q(sql)
-        address_id = rsp_data[1][0]["value"]
-        address = dynamo.getAddress(address_id)
-        post.append(address)
-        post = json.dumps(post)
-        # TODO: return links:[]
+        if rsp_data[0] > 0:
+            address_id = rsp_data[1][0]["value"]
+            address = dynamo.getAddress(address_id)
+            post.append(address)
+
+        # print(type(post))
+        tmp = {
+            "links": [
+                {
+                 "href": "api/profile/<email> ",
+                 "rel": "profile",
+                 "method" : "GET, PUT, DELETE"
+                },
+                {
+                 "href": "/api/customers/<email>/profile",
+                 "rel": "profile",
+                 "method" : "GET"
+                }
+              ]
+        }
+        post.append(tmp)
+        # post = json.dumps(post)
         return render_template("profile.html", form=form, post=post)
 
     elif request.method == "POST":
@@ -465,6 +494,21 @@ def profile_2(email):
         # addnumber = int(data_adaptor.run_q(sql))
         # address_post = getAddress(addnumber)
         # post = rsp + address_post
+        tmp = {
+            "links": [
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                },
+                {
+                    "href": "/api/customers/<email>/profile",
+                    "rel": "profile",
+                    "method": "GET"
+                }
+            ]
+        }
+        post.append(tmp)
         post = json.dumps(post)
 
     elif request.method == "PUT":
@@ -522,6 +566,21 @@ def show_profile(email):
         # addnumber = int(data_adaptor.run_q(sql))
         # address_post = getAddress(addnumber)
         # post = rsp + address_post
+        tmp = {
+            "links": [
+                {
+                    "href": "api/profile/<email> ",
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
+                },
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                }
+            ]
+        }
+        post.append(tmp)
         post = json.dumps(post)
     return post
 
