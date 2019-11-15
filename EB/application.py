@@ -400,9 +400,8 @@ def profile_1():
         sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
                   + "AND type = \"address_id\"" + ";")
         rsp_data = data_adaptor.run_q(sql)
-        print(rsp_data[1], type(rsp_data[1]))
-        # print("address_id = ", json.dumps(address_id))
-        # address = getAddress(address_id)
+        address_id = rsp_data[1][0]["value"]
+        address = dynamo.getAddress(address_id)
         post.append(address)
         post = json.dumps(post)
         # TODO: return links:[]
@@ -450,7 +449,7 @@ def profile_1():
         return redirect(url_for("profile_2", email=email))
 
 
-@application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
+@application.route("/api/profile/<email>", methods=["GET", "POST", "DELETE"])
 def profile_2(email):
     global _user_service
     form = Profile2(request.form)
@@ -468,7 +467,7 @@ def profile_2(email):
         # post = rsp + address_post
         post = json.dumps(post)
 
-    elif request.method == "PUT":
+    elif request.method == "POST":
         post = "update success"
 
         Email = form.Email.data
@@ -487,8 +486,8 @@ def profile_2(email):
         if addressInputTrue:
             if not ssvalid(address):
                 return "No candidates. This means the address is not valid. Please go back and submit again."
-            sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = address_id")
-            address_id = data_adaptor.run_q(sql)
+            sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
+            address_id = data_adaptor.run_q(sql)[1][0]["value"]
             dynamo.updateAddress(address, address_id)
         if Email:
             sql = str(
