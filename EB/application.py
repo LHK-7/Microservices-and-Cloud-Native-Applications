@@ -15,11 +15,10 @@ from wtforms import Form, StringField, PasswordField, validators, SubmitField
 from smartystreets_python_sdk import StaticCredentials, exceptions, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
 
-import EB.DataAccess.DataAdaptor as data_adaptor
+import EB.DataAccess.DataAdaptor as DataAdaptor
 import EB.DataAccess.dynamo as dynamo
 from EB.Context.Context import Context
 from EB.CustomerInfo.Users import UsersService as UserService, to_etag
-
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -120,7 +119,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 # 3. Return extracted information.
 def log_and_extract_input(path_params=None):
     path = request.path
-    args = dict(request.args)
+    args = request.args.to_dict()
     data = None
     headers = dict(request.headers)
     method = request.method
@@ -406,12 +405,12 @@ def profile_1():
         post = []
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
         # print(sql)
-        rsp_data = data_adaptor.run_q(sql)
+        rsp_data = DataAdaptor.run_q(sql)
         # print("\n", rsp_data)
         post.append(rsp_data)
         sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
                   + "AND type = \"address_id\"" + ";")
-        rsp_data = data_adaptor.run_q(sql)
+        rsp_data = DataAdaptor.run_q(sql)
         if rsp_data[0] > 0:
             address_id = rsp_data[1][0]["value"]
             address = dynamo.getAddress(address_id)
@@ -421,16 +420,16 @@ def profile_1():
         tmp = {
             "links": [
                 {
-                 "href": "api/profile/<email> ",
-                 "rel": "profile",
-                 "method" : "GET, PUT, DELETE"
+                    "href": "api/profile/<email> ",
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
                 },
                 {
-                 "href": "/api/customers/<email>/profile",
-                 "rel": "profile",
-                 "method" : "GET"
+                    "href": "/api/customers/<email>/profile",
+                    "rel": "profile",
+                    "method": "GET"
                 }
-              ]
+            ]
         }
         post.append(tmp)
         # post = json.dumps(post)
@@ -451,7 +450,7 @@ def profile_1():
                 + ", "
                 + "\"N.A.\""
                 + ");")
-            rsp_data = data_adaptor.run_q(sql)
+            rsp_data = DataAdaptor.run_q(sql)
         if Email:
             sql = str(
                 "INSERT INTO profile (user, value, type, subtype) VALUES ("
@@ -463,7 +462,7 @@ def profile_1():
                 + ", "
                 + "\"" + Email_sub + "\""
                 + ");")
-            rsp_data = data_adaptor.run_q(sql)
+            rsp_data = DataAdaptor.run_q(sql)
         if Telephone:
             sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
                       + "\"" + email + "\""
@@ -474,7 +473,7 @@ def profile_1():
                       + ", "
                       + "\"" + Telephone_sub + "\""
                       + ");")
-            rsp_data = data_adaptor.run_q(sql)
+            rsp_data = DataAdaptor.run_q(sql)
         return redirect(url_for("profile_2", email=email))
 
 
@@ -486,7 +485,7 @@ def profile_2(email):
     if request.method == "GET":
         post = []
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = data_adaptor.run_q(sql)
+        rsp_data = DataAdaptor.run_q(sql)
         # print("\n", rsp_data)
         post.append(rsp_data)
         # sql = str("SELECT address_number FROM profile where user = " + "\"" + email + "\"" + ";")
@@ -531,22 +530,22 @@ def profile_2(email):
             if not ssvalid(address):
                 return "No candidates. This means the address is not valid. Please go back and submit again."
             sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
-            address_id = data_adaptor.run_q(sql)[1][0]["value"]
+            address_id = DataAdaptor.run_q(sql)[1][0]["value"]
             dynamo.updateAddress(address, address_id)
         if Email:
             sql = str(
                 "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
-            rsp_data = data_adaptor.run_q(sql)
+            rsp_data = DataAdaptor.run_q(sql)
             # print(sql)
         if Telephone:
             sql = str(
                 "UPDATE profile SET value = " + "\"" + Telephone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
-            rsp_data = data_adaptor.run_q(sql)
+            rsp_data = DataAdaptor.run_q(sql)
 
     elif request.method == "DELETE":
         # print("email = ", email)
         sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = data_adaptor.run_q(sql)
+        rsp_data = DataAdaptor.run_q(sql)
         return redirect(url_for("profile_2", email=email))
 
     return render_template("profile2.html", form=form, post=post)
@@ -558,7 +557,7 @@ def show_profile(email):
     if request.method == "GET":
         post = []
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = data_adaptor.run_q(sql)
+        rsp_data = DataAdaptor.run_q(sql)
         # print("\n", rsp_data)
         post.append(rsp_data)
         # sql = str("SELECT address_number FROM profile where user = " + "\"" + email + "\"" + ";")
@@ -583,6 +582,30 @@ def show_profile(email):
         post.append(tmp)
         post = json.dumps(post)
     return post
+
+
+@application.route('/resource', methods=['GET'], defaults={'primary_key_value': None})
+@application.route('/resource/<primary_key_value>', methods=['GET'])
+def resource_by_template(primary_key_value=None):
+    try:
+        # Parse the incoming request into an application specific format.
+        context = log_and_extract_input()
+        template = {'email': primary_key_value} if primary_key_value else context.get('query_params', {})
+        fields = context.get('query_params', {}).pop('f', None)
+        if fields:
+            fields = fields.split(',')
+
+        if request.method == 'GET':
+            sql, args = DataAdaptor.create_select(table_name='users', template=template, fields=fields)
+            res, data = DataAdaptor.run_q(sql, args)
+            if res and len(data) > 0:
+                result = json.dumps(data, default=str)
+                return result, 200, {'Content-Type': 'application/json; charset=utf-8'}
+            else:
+                return "Not found", 404, {'Content-Type': 'text/plain; charset=utf-8'}
+    except Exception as e:
+        print(e)
+        return "Internal error.", 504, {'Content-Type': 'text/plain; charset=utf-8'}
 
 
 logger.debug("__name__ = " + str(__name__))
