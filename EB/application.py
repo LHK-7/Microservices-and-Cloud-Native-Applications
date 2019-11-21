@@ -1,5 +1,9 @@
-# ENV VARS:
+# ENV VARS
 # test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
+# dynamo=
+# sns=
+
+###################################################################################################################
 
 import json
 import os

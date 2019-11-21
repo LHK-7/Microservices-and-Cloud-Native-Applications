@@ -20,10 +20,6 @@ ENDPOINT = "http://e6156yeah.us-east-2.elasticbeanstalk.com/"
 # ConfigurationSetName=CONFIGURATION_SET argument below.
 CONFIGURATION_SET = "ConfigSet"
 
-# AWS config
-AWS_REGION = "us-east-1"
-ACCESS_KEY = '' # DO NOT EXPOSE keys.
-SECRET_KEY = ''
 
 # The subject line for the email.
 SUBJECT = "Cool message from Don!!!"
@@ -57,9 +53,9 @@ CHARSET = "UTF-8"
 
 # Create a new SES resource and specify a region.
 client = boto3.client('ses',
-    region_name=AWS_REGION,
-    aws_access_key_id=ACCESS_KEY,
-    aws_secret_access_key=SECRET_KEY
+    # region_name=AWS_REGION,
+    # aws_access_key_id=ACCESS_KEY,
+    # aws_secret_access_key=SECRET_KEY
 )
 
 # The secret key for jwt encoding.

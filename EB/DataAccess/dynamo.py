@@ -1,11 +1,14 @@
 import boto3
 import json
 import uuid
+import os
+
 
 # AWS Credentials: dynamoUser
-ACCESS_KEY = 'AKIAZ7JA4ZXTGY32YRXN'
-SECRET_KEY = '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'
-REGION = 'us-east-1'
+dynamo = json.loads(os.environ['dynamo'])
+ACCESS_KEY = dynamo['ACCESS_KEY']
+SECRET_KEY = dynamo['SECRET_KEY']
+REGION = dynamo['REGION']
 
 
 def reformat(address):
