@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
-from EB.Context import Context
-from EB.DataAccess.DataObject import UsersRDB as UsersRDB
+from Context import Context
+from DataAccess.DataObject import UsersRDB as UsersRDB
 from Middleware.notification import publish_it
 import hashlib
 

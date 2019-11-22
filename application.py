@@ -19,10 +19,10 @@ from wtforms import Form, StringField, PasswordField, validators, SubmitField
 from smartystreets_python_sdk import StaticCredentials, exceptions, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
 
-import EB.DataAccess.DataAdaptor as DataAdaptor
-import EB.DataAccess.dynamo as dynamo
-from EB.Context.Context import Context
-from EB.CustomerInfo.Users import UsersService as UserService, to_etag
+import DataAccess.DataAdaptor as DataAdaptor
+import DataAccess.dynamo as dynamo
+from Context.Context import Context
+from CustomerInfo.Users import UsersService as UserService, to_etag
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
