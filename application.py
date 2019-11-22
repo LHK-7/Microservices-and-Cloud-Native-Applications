@@ -23,7 +23,10 @@ import DataAccess.DataAdaptor as DataAdaptor
 import DataAccess.dynamo as dynamo
 from Context.Context import Context
 from CustomerInfo.Users import UsersService as UserService, to_etag
+import jwt
 
+from Middleware.authentication import authentication
+from Middleware.authorization import authorization
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
 import logging
@@ -105,17 +108,34 @@ def init():
 SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 
+from functools import wraps
 
-# def login_required(f):
-#     @wraps(f)
-#     def wrap(*args, **kwargs):
-#         if  session: # retrieve info from session storage
-#             return f(*args, **kwargs)
-#         else:
-#             flash("You need to login first")
-#             return redirect(url_for('login'))
-#
-#     return wrap
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.get_json() is None:
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@application.before_request
+def before_decorator():
+    rule = request.endpoint
+    print("Endpoint", rule)
+    if rule is not 'login':
+        if request.get_json() is not None:
+            print("authentication",request.get_json().get('password'))
+            if not authentication.passwordValidate(request.get_json().get('password')):
+                raise ValueError("your information cannot be identify")
+
+
+
+@application.after_request
+def after_decorator(rsp):
+    print("... In after decorator ...")
+    return rsp
 
 
 # 1. Extract the input information from the requests object.
@@ -226,12 +246,30 @@ def user_register():
 
     return render_template('register.html', form=form)
 
+@application.route("/api/user/login", endpoint="login", methods=["GET","POST","PUT"])
+def login():
+    error = None
+    if request.method == 'POST':
+        user = request.form['username']
+        password = request.form['password']
+        tmp = {user:password}
+        res = authentication.validate(tmp)
+        if res:
+            encoded_password = jwt.encode({'password':password}, 'secret', algorithm='HS256').decode('utf-8')
+            print("encoded_password",encoded_password)
+            return render_template('Home.html', encoded_password=encoded_password)
+        else:
+            error = 'Invalid Credentials. Please try again.'
+    return render_template('login.html', error=error)
 
-@application.route("/api/user/<email>", methods=["GET", "PUT", "POST", "DELETE"])
+
+@application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
+#@login_required
 def user_email(email):
     global _user_service
+    request_url = request.url
 
-    inputs = log_and_extract_input({"parameters": email})
+    inputs = log_and_extract_input(demo, {"parameters": email})
     rsp_data = None
     rsp_status = None
     rsp_txt = None
@@ -239,14 +277,13 @@ def user_email(email):
     try:
         user_service = _get_user_service()
 
-        # logger.error("/email: _user_service = " + str(user_service))
+
+        logger.error("/email: _user_service = " + str(user_service))
 
         if inputs["method"] == "GET":
-
+            headers = dict(request.headers)
             rsp = user_service.get_by_email(email)
-
             if rsp is not None:
-                etag = to_etag(rsp)
                 rsp_data = rsp
                 rsp_status = 200
                 rsp_txt = "OK"
@@ -255,32 +292,23 @@ def user_email(email):
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
 
-        elif inputs["method"] == 'PUT':
-            temp = {"email": email, "status": "ACTIVE"}
-            rsp_data = user_service.activate_user(temp)
-            rsp_status = 200
-            rsp_txt = str(rsp_data)
+        elif request.method == 'PUT':
+            form = registerForm(request.form)
 
-        elif inputs["method"] == 'POST':
-            client_etag = request.headers["ETag"]
+            if form.validate():
+                last_name = form.last_name.data
+                first_name = form.first_name.data
+                email = form.email.data
+                password = form.password.data
+                id = str(uuid.uuid4())
 
-            # form = RegisterForm(request.form)
-            # if form.validate():
-            #     last_name = form.last_name.data
-            #     first_name = form.first_name.data
-            #     email = form.email.data
-            #     password = form.password.data
-            #     id = str(uuid.uuid4())
-            #
-            #     res = [id, last_name, first_name, email, password]
-            #     temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
-            temp = request.json
-            temp["email"] = email
-            rsp_data = user_service.update_user(temp, client_etag)
-            rsp_status = 200
-            rsp_txt = str(rsp_data)
+                res = [id, last_name, first_name, email, password]
+                temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
 
-        elif inputs["method"] == "DELETE":  # This SHOULD SET STATUS to DELETED instead of removing the tuple
+                user_service = _get_user_service()
+                rsp = user_service.update_user(temp)
+
+        elif inputs["method"] == "DELETE":
             rsp_data = user_service.delete_user({"email": email})
             rsp_status = 200
             rsp_txt = str(rsp_data)
@@ -292,8 +320,6 @@ def user_email(email):
 
         if rsp_data is not None:
             full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
-            if inputs["method"] == "GET":
-                full_rsp.headers["ETag"] = etag
         else:
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
 
@@ -307,6 +333,7 @@ def user_email(email):
     log_response("/email", rsp_status, rsp_data, rsp_txt)
 
     return full_rsp
+
 
 
 class Profile1(FlaskForm):
