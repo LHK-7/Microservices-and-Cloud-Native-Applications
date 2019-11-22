@@ -2,7 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from EB.Context import Context
 from EB.DataAccess.DataObject import UsersRDB as UsersRDB
-from EB.Middleware.notification import publish_it
+from Middleware.notification import publish_it
 import hashlib
 
 # The base classes would not be IN the project. They would be in a separate included package.
