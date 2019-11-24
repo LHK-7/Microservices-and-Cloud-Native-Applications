@@ -263,13 +263,11 @@ def login():
     return render_template('login.html', error=error)
 
 
-@application.route("/api/user/<email>", methods=["GET", "PUT", "DELETE"])
-#@login_required
+@application.route("/api/user/<email>", methods=["GET", "PUT", "POST", "DELETE"])
 def user_email(email):
     global _user_service
-    request_url = request.url
 
-    inputs = log_and_extract_input(demo, {"parameters": email})
+    inputs = log_and_extract_input({"parameters": email})
     rsp_data = None
     rsp_status = None
     rsp_txt = None
@@ -277,13 +275,14 @@ def user_email(email):
     try:
         user_service = _get_user_service()
 
-
-        logger.error("/email: _user_service = " + str(user_service))
+        # logger.error("/email: _user_service = " + str(user_service))
 
         if inputs["method"] == "GET":
-            headers = dict(request.headers)
+
             rsp = user_service.get_by_email(email)
+
             if rsp is not None:
+                etag = to_etag(rsp)
                 rsp_data = rsp
                 rsp_status = 200
                 rsp_txt = "OK"
@@ -292,23 +291,32 @@ def user_email(email):
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
 
-        elif request.method == 'PUT':
-            form = registerForm(request.form)
+        elif inputs["method"] == 'PUT':
+            temp = {"email": email, "status": "ACTIVE"}
+            rsp_data = user_service.activate_user(temp)
+            rsp_status = 200
+            rsp_txt = str(rsp_data)
 
-            if form.validate():
-                last_name = form.last_name.data
-                first_name = form.first_name.data
-                email = form.email.data
-                password = form.password.data
-                id = str(uuid.uuid4())
+        elif inputs["method"] == 'POST':
+            client_etag = request.headers["ETag"]
 
-                res = [id, last_name, first_name, email, password]
-                temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
+            # form = RegisterForm(request.form)
+            # if form.validate():
+            #     last_name = form.last_name.data
+            #     first_name = form.first_name.data
+            #     email = form.email.data
+            #     password = form.password.data
+            #     id = str(uuid.uuid4())
+            #
+            #     res = [id, last_name, first_name, email, password]
+            #     temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
+            temp = request.json
+            temp["email"] = email
+            rsp_data = user_service.update_user(temp, client_etag)
+            rsp_status = 200
+            rsp_txt = str(rsp_data)
 
-                user_service = _get_user_service()
-                rsp = user_service.update_user(temp)
-
-        elif inputs["method"] == "DELETE":
+        elif inputs["method"] == "DELETE":  # This SHOULD SET STATUS to DELETED instead of removing the tuple
             rsp_data = user_service.delete_user({"email": email})
             rsp_status = 200
             rsp_txt = str(rsp_data)
@@ -320,6 +328,8 @@ def user_email(email):
 
         if rsp_data is not None:
             full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
+            if inputs["method"] == "GET":
+                full_rsp.headers["ETag"] = etag
         else:
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
 
@@ -333,7 +343,6 @@ def user_email(email):
     log_response("/email", rsp_status, rsp_data, rsp_txt)
 
     return full_rsp
-
 
 
 class Profile1(FlaskForm):
