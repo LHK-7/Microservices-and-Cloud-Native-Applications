@@ -3,7 +3,7 @@ import jwt
 import unicodedata
 
 
-from EB.DataAccess.DataObject import UsersRDB as UsersRDB
+from DataAccess.DataObject import UsersRDB as UsersRDB
 
 class authentication():
 

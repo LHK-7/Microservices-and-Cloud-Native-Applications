@@ -7,7 +7,7 @@ from flask import Flask, Response, request
 from werkzeug.wrappers import Response as wResponse
 from functools import wraps
 from flask import g, request, redirect, url_for
-from EB.Middleware.authentication import authentication
+from Middleware.authentication import authentication
 
 
 class authorization(object):
