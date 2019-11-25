@@ -4,9 +4,8 @@ import pymysql.err
 
 
 class DataException(Exception):
-
-    unknown_error   =   1001
-    duplicate_key   =   1002
+    unknown_error = 1001
+    duplicate_key = 1002
 
     def __init__(self, code=unknown_error, msg="Something awful happened."):
         self.code = code
@@ -37,7 +36,7 @@ class UsersRDB(BaseDataObject):
         sql = "select * from users where email=%s"
         res, data = data_adaptor.run_q(sql=sql, args=(email), fetch=True)
         if data is not None and len(data) > 0:
-            result =  data[0]
+            result = data[0]
         else:
             result = None
 
@@ -66,10 +65,10 @@ class UsersRDB(BaseDataObject):
         return result
 
     @classmethod
-    def update_user(cls, user_info,template):
+    def update_user(cls, user_info, template):
         result = None
         try:
-            sql, args = data_adaptor.create_update(table_name="users", new_values=user_info,template=template)
+            sql, args = data_adaptor.create_update(table_name="users", new_values=user_info, template=template)
             res, data = data_adaptor.run_q(sql, args)
             if res != 1:
                 result = None
@@ -93,3 +92,31 @@ class UsersRDB(BaseDataObject):
             raise exp
 
         return result
+
+    @classmethod
+    def validate_info(cls, user_info):
+        try:
+            sql = "select password from users where email = " + "'" + user_info + "'"
+            res, data = data_adaptor.run_q(sql)
+            if res != 1:
+                result = None
+            else:
+                res = data[0].get("password")
+        except Exception as e:
+            raise DataException()
+
+        return res
+
+    @classmethod
+    def validate_password(cls, password):
+        try:
+            sql = "select password from users where password = " + "'" + password + "'"
+            res, data = data_adaptor.run_q(sql)
+            if res != 1:
+                result = None
+            else:
+                res = data[0].get("password")
+        except Exception as e:
+            raise DataException()
+
+        return res

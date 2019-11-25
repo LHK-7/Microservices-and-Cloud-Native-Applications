@@ -1,12 +1,8 @@
 import json
 import logging
 from datetime import datetime
-
 import jwt
-from flask import Flask, Response, request
-from werkzeug.wrappers import Response as wResponse
-from functools import wraps
-from flask import g, request, redirect, url_for
+
 from Middleware.authentication import authentication
 
 
@@ -20,18 +16,18 @@ class authorization(object):
         return self.app(environ, start_response)
 
     @classmethod
-    def authorize(self,url, method, token):
+    def authorize(self, url, method, token):
         user = url.split('/')[-1].replace("%40", "@")
         validations = jwt.decode(token, 'secret', algorithms=['HS256'])
         password = validations['password']
-        print()
+        # print()
         tmp = {user: password}
-        print(tmp)
+        # print(tmp)
         res = authentication.validate(tmp)
 
         if method == "GET":
             return True
-        if method == "CREATE":
+        if method == "POST":
             return False
 
         if method == "DELETE":

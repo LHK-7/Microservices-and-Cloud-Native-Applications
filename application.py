@@ -18,15 +18,16 @@ from flask_wtf import FlaskForm
 from wtforms import Form, StringField, PasswordField, validators, SubmitField
 from smartystreets_python_sdk import StaticCredentials, exceptions, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
+from functools import wraps
+import jwt
 
 import DataAccess.DataAdaptor as DataAdaptor
 import DataAccess.dynamo as dynamo
 from Context.Context import Context
 from CustomerInfo.Users import UsersService as UserService, to_etag
-import jwt
-
 from Middleware.authentication import authentication
 from Middleware.authorization import authorization
+
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
 import logging
@@ -108,34 +109,32 @@ def init():
 SECRET_KEY = os.urandom(32)
 application.config['SECRET_KEY'] = SECRET_KEY
 
-from functools import wraps
 
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if request.get_json() is None:
-            return redirect(url_for('login', next=request.url))
-        return f(*args, **kwargs)
-    return decorated_function
+# def login_required(f):
+#     @wraps(f)
+#     def decorated_function(*args, **kwargs):
+#         if request.get_json() is None:
+#             return redirect(url_for('login', next=request.url))
+#         return f(*args, **kwargs)
+#
+#     return decorated_function
 
 
 @application.before_request
 def before_decorator():
     rule = request.endpoint
-    print("Endpoint", rule)
+    # print("Endpoint: ", rule)
     if rule is not 'login':
         if request.get_json() is not None:
-            print("authentication",request.get_json().get('password'))
+            # print("authentication: ", request.get_json().get('password'))
             if not authentication.passwordValidate(request.get_json().get('password')):
                 raise ValueError("your information cannot be identify")
 
 
-
-@application.after_request
-def after_decorator(rsp):
-    print("... In after decorator ...")
-    return rsp
+# @application.after_request
+# def after_decorator(rsp):
+#     print("... In after decorator ...")
+#     return rsp
 
 
 # 1. Extract the input information from the requests object.
@@ -246,17 +245,18 @@ def user_register():
 
     return render_template('register.html', form=form)
 
-@application.route("/api/user/login", endpoint="login", methods=["GET","POST","PUT"])
+
+@application.route("/api/user/login", endpoint="login", methods=["GET", "POST", "PUT"])
 def login():
     error = None
     if request.method == 'POST':
         user = request.form['username']
         password = request.form['password']
-        tmp = {user:password}
+        tmp = {user: password}
         res = authentication.validate(tmp)
         if res:
-            encoded_password = jwt.encode({'password':password}, 'secret', algorithm='HS256').decode('utf-8')
-            print("encoded_password",encoded_password)
+            encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
+            # print("encoded_password: ", encoded_password)
             return render_template('Home.html', encoded_password=encoded_password)
         else:
             error = 'Invalid Credentials. Please try again.'

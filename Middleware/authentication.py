@@ -1,9 +1,7 @@
-import json
 import jwt
-import unicodedata
-
 
 from DataAccess.DataObject import UsersRDB as UsersRDB
+
 
 class authentication():
 
@@ -11,7 +9,7 @@ class authentication():
         self.app = app
 
     def __call__(self, environ, start_response):
-        print ("\n\nSimpleMiddlewareObject: something you want done in every http request")
+        print("\n\nSimpleMiddlewareObject: something you want done in every http request")
         return self.app(environ, start_response)
 
     @classmethod
@@ -28,11 +26,9 @@ class authentication():
 
     @classmethod
     def passwordValidate(self, password):
-        user_password = jwt.decode(password,'secret',algorithms=['HS256'])
+        user_password = jwt.decode(password, 'secret', algorithms=['HS256'])
         res = UsersRDB.validate_password(user_password.get('password'))
         if res == user_password.get('password'):
             return True
         else:
             return False
-
-
