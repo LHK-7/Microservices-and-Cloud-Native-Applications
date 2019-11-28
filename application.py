@@ -64,7 +64,7 @@ footer_text = '</body>\n</html>'
 application = Flask(__name__)
 
 # Enable CORS
-# CORS(application)
+CORS(application)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -279,6 +279,10 @@ def login():
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+        full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
+        full_rsp.headers["Access-Control-Allow-Credentials"] = "true"
+
 
     return full_rsp
 
