@@ -259,7 +259,8 @@ def login():
         if res:
             encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
             rsp_data = {
-                "result": res
+                "result": res,
+                "Token": encoded_password
             }
             # print(type(rsp_data), rsp_data)
             rsp_status = 200
