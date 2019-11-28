@@ -15,6 +15,7 @@ from datetime import datetime
 # - requests enables accessing the elements of an incoming HTTP/REST request.
 from flask import Flask, Response, request, render_template, redirect, url_for
 from flask_wtf import FlaskForm
+from flask_cors import CORS
 from wtforms import Form, StringField, PasswordField, validators, SubmitField
 from smartystreets_python_sdk import StaticCredentials, exceptions, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
@@ -61,6 +62,9 @@ footer_text = '</body>\n</html>'
 # EB looks for an 'application' callable by default.
 # This is the top-level application that receives and routes requests.
 application = Flask(__name__)
+
+# Enable CORS
+CORS(application)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -330,6 +334,7 @@ def user_email(email):
             full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
             if inputs["method"] == "GET":
                 full_rsp.headers["ETag"] = etag
+
         else:
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
 
@@ -339,6 +344,8 @@ def user_email(email):
         rsp_status = 500
         rsp_txt = "INTERNAL SERVER ERROR. Please take COMSE6156 -- Cloud Native Applications."
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+
+    # full_rsp.headers['Access-Control-Allow-Origin'] = '*'
 
     log_response("/email", rsp_status, rsp_data, rsp_txt)
 
