@@ -71,6 +71,7 @@ application.add_url_rule('/', 'index', (lambda: header_text +
 application.add_url_rule('/<username>', 'hello', (lambda username:
                                                   header_text + say_hello(username) + home_link + footer_text))
 
+
 ##################################################################################################################
 # The stuff I added begins here.
 
@@ -221,7 +222,7 @@ class RegisterForm(Form):
     ])
 
 
-@application.route("/api/user/registeration", methods=["GET", "POST"])
+@application.route("/api/user/registration", methods=["GET", "POST"])
 def user_register():
     global _user_service
 
@@ -236,9 +237,6 @@ def user_register():
         res = [id, last_name, first_name, email, password]
         temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
 
-        # print(res)
-        # print(temp)
-
         user_service = _get_user_service()
         rsp = user_service.create_user(temp)
         return render_template('register.html', form=form)
@@ -250,17 +248,31 @@ def user_register():
 def login():
     error = None
     if request.method == 'POST':
+
         user = request.form['username']
         password = request.form['password']
         tmp = {user: password}
         res = authentication.validate(tmp)
         if res:
             encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
+            rsp_data = res
+            rsp_status = 200
+            rsp_txt = str(res)
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            Response.body["result"] = True
+            Response.headers["Token"] = encoded_password
+            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
             # print("encoded_password: ", encoded_password)
-            return render_template('Home.html', encoded_password=encoded_password)
+            return full_rsp
         else:
             error = 'Invalid Credentials. Please try again.'
-    return render_template('login.html', error=error)
+            rsp_data = error
+            rsp_status = 200
+            rsp_txt = str(res)
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+
+            Response.body["result"] = False
+    return full_rsp
 
 
 @application.route("/api/user/<email>", methods=["GET", "PUT", "POST", "DELETE"])
@@ -639,13 +651,32 @@ def resource_by_template(primary_key_value=None):
             sql, args = DataAdaptor.create_select(table_name='users', template=template, fields=fields)
             res, data = DataAdaptor.run_q(sql, args)
             if res and len(data) > 0:
+
                 result = json.dumps(data, default=str)
-                return result, 200, {'Content-Type': 'application/json; charset=utf-8'}
+
+                rsp_data = result
+                rsp_status = 200
+                rsp_txt = str(rsp_data)
+
+                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+                full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+                return full_rsp
             else:
-                return "Not found", 404, {'Content-Type': 'text/plain; charset=utf-8'}
+                rsp_status = 404
+                rsp_txt = "Not Found"
+                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+                full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+                return full_rsp
     except Exception as e:
         print(e)
-        return "Internal error.", 504, {'Content-Type': 'text/plain; charset=utf-8'}
+        rsp_txt = "Internal Error"
+        rsp_status = 504
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+        return full_rsp
 
 
 logger.debug("__name__ = " + str(__name__))
