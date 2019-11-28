@@ -71,6 +71,7 @@ application.add_url_rule('/', 'index', (lambda: header_text +
 application.add_url_rule('/<username>', 'hello', (lambda username:
                                                   header_text + say_hello(username) + home_link + footer_text))
 
+
 ##################################################################################################################
 # The stuff I added begins here.
 
@@ -235,9 +236,6 @@ def user_register():
 
         res = [id, last_name, first_name, email, password]
         temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
-
-        # print(res)
-        # print(temp)
 
         user_service = _get_user_service()
         rsp = user_service.create_user(temp)
@@ -639,13 +637,28 @@ def resource_by_template(primary_key_value=None):
             sql, args = DataAdaptor.create_select(table_name='users', template=template, fields=fields)
             res, data = DataAdaptor.run_q(sql, args)
             if res and len(data) > 0:
+
                 result = json.dumps(data, default=str)
-                return result, 200, {'Content-Type': 'application/json; charset=utf-8'}
+
+                rsp_data = result
+                rsp_status = 200
+                rsp_txt = str(rsp_data)
+
+                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+                return full_rsp
             else:
-                return "Not found", 404, {'Content-Type': 'text/plain; charset=utf-8'}
+                rsp_status = 404
+                rsp_txt = "Not Found"
+                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+
+                return full_rsp
     except Exception as e:
         print(e)
-        return "Internal error.", 504, {'Content-Type': 'text/plain; charset=utf-8'}
+        rsp_txt = "Internal Error"
+        rsp_status = 504
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+
+        return full_rsp
 
 
 logger.debug("__name__ = " + str(__name__))
