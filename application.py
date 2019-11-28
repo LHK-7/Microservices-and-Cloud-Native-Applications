@@ -222,7 +222,7 @@ class RegisterForm(Form):
     ])
 
 
-@application.route("/api/user/registeration", methods=["GET", "POST"])
+@application.route("/api/user/registration", methods=["GET", "POST"])
 def user_register():
     global _user_service
 
@@ -248,17 +248,31 @@ def user_register():
 def login():
     error = None
     if request.method == 'POST':
+
         user = request.form['username']
         password = request.form['password']
         tmp = {user: password}
         res = authentication.validate(tmp)
         if res:
             encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
+            rsp_data = res
+            rsp_status = 200
+            rsp_txt = str(res)
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            Response.body["result"] = True
+            Response.headers["Token"] = encoded_password
+            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
             # print("encoded_password: ", encoded_password)
-            return render_template('Home.html', encoded_password=encoded_password)
+            return full_rsp
         else:
             error = 'Invalid Credentials. Please try again.'
-    return render_template('login.html', error=error)
+            rsp_data = error
+            rsp_status = 200
+            rsp_txt = str(res)
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+
+            Response.body["result"] = False
+    return full_rsp
 
 
 @application.route("/api/user/<email>", methods=["GET", "PUT", "POST", "DELETE"])
@@ -645,11 +659,14 @@ def resource_by_template(primary_key_value=None):
                 rsp_txt = str(rsp_data)
 
                 full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+                full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
                 return full_rsp
             else:
                 rsp_status = 404
                 rsp_txt = "Not Found"
                 full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+                full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
                 return full_rsp
     except Exception as e:
@@ -657,6 +674,7 @@ def resource_by_template(primary_key_value=None):
         rsp_txt = "Internal Error"
         rsp_status = 504
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
         return full_rsp
 
