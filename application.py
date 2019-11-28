@@ -64,7 +64,7 @@ footer_text = '</body>\n</html>'
 application = Flask(__name__)
 
 # Enable CORS
-CORS(application)
+# CORS(application)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
