@@ -263,9 +263,9 @@ def login():
             rsp_status = 200
             rsp_txt = str(res)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            Response.body["result"] = True
-            Response.headers["Token"] = encoded_password
-            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+            full_rsp.data["result"] = True
+            full_rsp.headers["Token"] = encoded_password
+
             # print("encoded_password: ", encoded_password)
             return full_rsp
         else:
@@ -274,8 +274,10 @@ def login():
             rsp_status = 200
             rsp_txt = str(res)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            full_rsp.data["result"] = False
 
-            Response.body["result"] = False
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
     return full_rsp
 
 
