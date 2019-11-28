@@ -75,7 +75,6 @@ application.add_url_rule('/', 'index', (lambda: header_text +
 application.add_url_rule('/<username>', 'hello', (lambda username:
                                                   header_text + say_hello(username) + home_link + footer_text))
 
-
 ##################################################################################################################
 # The stuff I added begins here.
 
@@ -248,33 +247,36 @@ def user_register():
     return render_template('register.html', form=form)
 
 
-@application.route("/api/user/login", endpoint="login", methods=["GET", "POST", "PUT"])
+@application.route("/api/user/login", endpoint="login", methods=["POST"])
 def login():
     error = None
     if request.method == 'POST':
-
-        user = request.form['username']
-        password = request.form['password']
+        # print(request.json)
+        user = request.json['username']
+        password = request.json['password']
         tmp = {user: password}
         res = authentication.validate(tmp)
         if res:
             encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
-            rsp_data = res
+            rsp_data = {
+                "result": res
+            }
+            # print(type(rsp_data), rsp_data)
             rsp_status = 200
-            rsp_txt = str(res)
+            rsp_txt = json.dumps(rsp_data)
+            # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            full_rsp.data["result"] = True
             full_rsp.headers["Token"] = encoded_password
-
             # print("encoded_password: ", encoded_password)
-            return full_rsp
+
         else:
             error = 'Invalid Credentials. Please try again.'
-            rsp_data = error
+            rsp_data = {
+                "result": error
+            }
             rsp_status = 200
-            rsp_txt = str(res)
+            rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            full_rsp.data["result"] = False
 
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
