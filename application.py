@@ -711,14 +711,14 @@ def get_articles():
         user = UsersRDB.find_user(password)
         results = UsersRDB.find_postinfo(user)
 
-        rsp_status = 504
+        rsp_status = 200
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
         return full_rsp
     except Exception as e:
-        rsp_txt = "Internal Error"
-        rsp_status = 504
+        rsp_txt = "Not Found"
+        rsp_status = 404
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
