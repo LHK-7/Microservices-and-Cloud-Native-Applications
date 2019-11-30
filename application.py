@@ -348,7 +348,7 @@ def user_email(email):
             temp["email"] = email
             rsp_data = user_service.update_user(temp, client_etag)
             rsp_status = 200
-            rsp_txt = str("rsp_data")
+            rsp_txt = str(rsp_data)
 
         elif inputs["method"] == "DELETE":  # This SHOULD SET STATUS to DELETED instead of removing the tuple
             rsp_data = user_service.delete_user({"email": email})
