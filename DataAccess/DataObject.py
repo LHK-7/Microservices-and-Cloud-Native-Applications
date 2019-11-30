@@ -161,7 +161,6 @@ class UsersRDB(BaseDataObject):
         try:
             sql = "select content, image, date from posts where author = " + "'" + user_email + "'"
             res, data = data_adaptor.run_q(sql)
-            print("ok", res, data)
             if res == 0:
                 result = "there is no post"
             else:
