@@ -265,6 +265,8 @@ def login():
         password = request.json['password']
         tmp = {user: password}
         res = authentication.validate(tmp)
+
+        print(res)
         if res:
             encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
             rsp_data = {
@@ -282,9 +284,10 @@ def login():
         else:
             error = 'Invalid Credentials. Please try again.'
             rsp_data = {
-                "result": error
+                "result": res,
+                "error": error
             }
-            rsp_status = 200
+            rsp_status = 504
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         #TODO leave this for now "http://localhost:4200"
