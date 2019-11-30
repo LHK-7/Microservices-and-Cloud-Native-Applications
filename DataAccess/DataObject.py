@@ -125,20 +125,6 @@ class UsersRDB(BaseDataObject):
             raise DataException()
 
         return res
-    #TODO delete in the near future leave for test
-    @classmethod
-    def find_user(cls,password):
-        try:
-            sql = "select email from users where password = " + "'" + password + "'"
-            res, data = data_adaptor.run_q(sql)
-            if res != 1:
-                result = None
-            else:
-                res = data[0].get("email")
-        except Exception as e:
-            raise DataException()
-
-        return res
 
 
     @classmethod
