@@ -706,9 +706,12 @@ def resource_by_template(primary_key_value=None):
 @application.route('/articles', methods=['GET'])
 def get_articles():
     try:
-        #TODO change to request[password] and do jwt.decode()
+        #TODO change to request[password] and do jwt.decode() we can directly get the user email from request
+        '''
+        Leave for now, for a simple test.....
         password = "Yunho123"
         user = UsersRDB.find_user(password)
+        '''
         results = UsersRDB.find_postinfo(user)
 
         rsp_status = 200
