@@ -2,6 +2,11 @@ from DataAccess import DataAdaptor as data_adaptor
 from abc import ABC, abstractmethod
 import pymysql.err
 
+from datetime import datetime
+import json
+
+
+
 
 class DataException(Exception):
     unknown_error = 1001
@@ -120,3 +125,50 @@ class UsersRDB(BaseDataObject):
             raise DataException()
 
         return res
+
+    @classmethod
+    def find_user(cls,password):
+        try:
+            sql = "select email from users where password = " + "'" + password + "'"
+            res, data = data_adaptor.run_q(sql)
+            if res != 1:
+                result = None
+            else:
+                res = data[0].get("password")
+        except Exception as e:
+            raise DataException()
+
+        return res
+
+    @classmethod
+    def find_user(cls,password):
+        try:
+            sql = "select email from users where password = " + "'" + password + "'"
+            res, data = data_adaptor.run_q(sql)
+            if res != 1:
+                result = None
+            else:
+                res = data[0].get("email")
+        except Exception as e:
+            raise DataException()
+
+        return res
+
+    json.JSONEncoder.default = lambda self, obj: (obj.isoformat() if isinstance(obj, datetime.datetime) else None)
+
+    @classmethod
+    def find_postinfo(cls, user_email):
+        try:
+            sql = "select content, image, date from posts where author = " + "'" + user_email + "'"
+            res, data = data_adaptor.run_q(sql)
+            print("ok", res, data)
+            if res == 0:
+                result = "there is no post"
+            else:
+                res = json.dumps(data, indent=4, sort_keys=True, default=str)
+        except Exception as e:
+            raise DataException()
+
+        return res
+
+
