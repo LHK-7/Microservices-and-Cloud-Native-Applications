@@ -28,6 +28,7 @@ from Context.Context import Context
 from CustomerInfo.Users import UsersService as UserService, to_etag
 from Middleware.authentication import authentication
 from Middleware.authorization import authorization
+from DataAccess.DataObject import UsersRDB as UsersRDB
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -233,7 +234,6 @@ def user_register():
     #print("request", request.get_json())
     global _user_service
     if request.method == 'POST':
-        #TODO change last_name and first_name; need to talk
         last_name = request.get_json().get("last_name")
         first_name = request.get_json().get("first_name")
         email = request.get_json().get("email")
@@ -268,7 +268,7 @@ def login():
 
         print(res)
         if res:
-            encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
+            encoded_password = jwt.encode({user: password}, 'secret', algorithm='HS256').decode('utf-8')
             rsp_data = {
                 "result": res,
                 "Token": encoded_password
@@ -290,8 +290,8 @@ def login():
             rsp_status = 504
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-        #TODO leave this for now "http://localhost:4200"
-        full_rsp.headers["Access-Control-Allow-Origin"] = "http://localhost:4200"
+
+        full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
         full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
@@ -706,6 +706,28 @@ def resource_by_template(primary_key_value=None):
 
         return full_rsp
 
+@application.route('/articles', methods=['GET'])
+def get_articles():
+    try:
+        #TODO change to request[password] and do jwt.decode() we can directly get the user email from request
+        '''
+        user = resquest["user"] query from header
+        '''
+        results = UsersRDB.find_postinfo(user)
+
+        rsp_status = 200
+        full_rsp = Response(results, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+        return full_rsp
+    except Exception as e:
+        rsp_txt = "Not Found"
+        rsp_status = 404
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+        return full_rsp
+
 
 logger.debug("__name__ = " + str(__name__))
 
@@ -718,3 +740,4 @@ if __name__ == "__main__":
 
     application.debug = True
     application.run()
+

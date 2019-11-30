@@ -2,6 +2,11 @@ from DataAccess import DataAdaptor as data_adaptor
 from abc import ABC, abstractmethod
 import pymysql.err
 
+from datetime import datetime
+import json
+
+
+
 
 class DataException(Exception):
     unknown_error = 1001
@@ -120,3 +125,20 @@ class UsersRDB(BaseDataObject):
             raise DataException()
 
         return res
+
+
+    @classmethod
+    def find_postinfo(cls, user_email):
+        try:
+            sql = "select content, image, date from posts where author = " + "'" + user_email + "'"
+            res, data = data_adaptor.run_q(sql)
+            if res == 0:
+                result = "there is no post"
+            else:
+                res = json.dumps(data, indent=4, sort_keys=True, default=str)
+        except Exception as e:
+            raise DataException()
+
+        return res
+
+
