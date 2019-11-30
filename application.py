@@ -234,8 +234,8 @@ def user_register():
     global _user_service
     if request.method == 'POST':
         #TODO change last_name and first_name; need to talk with yuanrui
-        last_name = request.get_json().get("username")
-        first_name = request.get_json().get("displayname")
+        last_name = request.get_json().get("lastname")
+        first_name = request.get_json().get("firstname")
         email = request.get_json().get("email")
         password = request.get_json().get("password")
         id = str(uuid.uuid4())
@@ -257,8 +257,7 @@ def user_register():
 
 
 @application.route("/api/user/login", endpoint="login", methods=["POST"])
-def login(rsp):
-    request
+def login():
     error = None
     if request.method == 'POST':
         # print(request.json)
@@ -288,8 +287,8 @@ def login(rsp):
             rsp_status = 200
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+        #TODO leave this for now "http://localhost:4200"
+        full_rsp.headers["Access-Control-Allow-Origin"] = "http://localhost:4200"
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
         full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
