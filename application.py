@@ -63,8 +63,18 @@ footer_text = '</body>\n</html>'
 # This is the top-level application that receives and routes requests.
 application = Flask(__name__)
 
+# we may not need this
+config = {
+  'ORIGINS': [
+    'http://localhost:4200',  # angular
+    'http://127.0.0.1:5000/ ',  # flask
+  ]
+}
 # Enable CORS
-CORS(application)
+CORS(application,resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
+
+application.config['CORS_HEADERS',] = 'Content-Type'
+
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -123,7 +133,8 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #
 #     return decorated_function
 
-
+#TODO Need to change a new way to handle before request!
+'''
 @application.before_request
 def before_decorator():
     rule = request.endpoint
@@ -134,12 +145,14 @@ def before_decorator():
             if not authentication.passwordValidate(request.get_json().get('password')):
                 raise ValueError("your information cannot be identify")
 
-
+'''
+#TODO add full_rsp.headers["Access-Control-Allow-Origin"] = "*" in after request!
+'''
 # @application.after_request
 # def after_decorator(rsp):
 #     print("... In after decorator ...")
 #     return rsp
-
+'''
 
 # 1. Extract the input information from the requests object.
 # 2. Log the information
@@ -215,40 +228,37 @@ def log_response(method, status, data, txt):
 # def redir():
 #     return redirect("http://www.example.com", code=302)
 
-
-class RegisterForm(Form):
-    last_name = StringField('Last Name', [validators.Length(min=1, max=50)])
-    first_name = StringField('First Name', [validators.Length(min=1, max=50)])
-    email = StringField('Email', [validators.length(min=6, max=50)])
-    password = PasswordField('Password', [
-        validators.DataRequired()
-    ])
-
-
 @application.route("/api/user/registration", methods=["GET", "POST"])
 def user_register():
+    #print("request", request.get_json())
     global _user_service
-
-    form = RegisterForm(request.form)
-    if request.method == 'POST' and form.validate():
-        last_name = form.last_name.data
-        first_name = form.first_name.data
-        email = form.email.data
-        password = form.password.data
+    if request.method == 'POST':
+        #TODO change last_name and first_name; need to talk with yuanrui
+        last_name = request.get_json().get("username")
+        first_name = request.get_json().get("displayname")
+        email = request.get_json().get("email")
+        password = request.get_json().get("password")
         id = str(uuid.uuid4())
 
         res = [id, last_name, first_name, email, password]
         temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
 
         user_service = _get_user_service()
-        rsp = user_service.create_user(temp)
-        return render_template('register.html', form=form)
+        user_service.create_user(temp)
+        rsp_txt = json.dumps("user created")
+        rsp_status = 200
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+        return full_rsp
 
-    return render_template('register.html', form=form)
+    rsp_txt = json.dumps("user do not create due an uncontroled reason")
+    rsp_status = 200
+    full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    return full_rsp
 
 
 @application.route("/api/user/login", endpoint="login", methods=["POST"])
-def login():
+def login(rsp):
+    request
     error = None
     if request.method == 'POST':
         # print(request.json)
@@ -282,7 +292,7 @@ def login():
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-        full_rsp.headers["Access-Control-Allow-Credentials"] = "true"
+        full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
 
 
     return full_rsp
@@ -339,7 +349,7 @@ def user_email(email):
             temp["email"] = email
             rsp_data = user_service.update_user(temp, client_etag)
             rsp_status = 200
-            rsp_txt = str(rsp_data)
+            rsp_txt = str("rsp_data")
 
         elif inputs["method"] == "DELETE":  # This SHOULD SET STATUS to DELETED instead of removing the tuple
             rsp_data = user_service.delete_user({"email": email})
