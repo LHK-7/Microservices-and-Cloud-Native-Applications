@@ -708,9 +708,7 @@ def get_articles():
     try:
         #TODO change to request[password] and do jwt.decode() we can directly get the user email from request
         '''
-        Leave for now, for a simple test.....
-        password = "Yunho123"
-        user = UsersRDB.find_user(password)
+        user = resquest["user"] query from header
         '''
         results = UsersRDB.find_postinfo(user)
 
