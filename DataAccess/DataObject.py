@@ -125,7 +125,7 @@ class UsersRDB(BaseDataObject):
             raise DataException()
 
         return res
-‘’‘ 
+    #TODO delete in the near future leave for test
     @classmethod
     def find_user(cls,password):
         try:
@@ -139,7 +139,7 @@ class UsersRDB(BaseDataObject):
             raise DataException()
 
         return res
- ‘’‘
+
 
     @classmethod
     def find_postinfo(cls, user_email):
