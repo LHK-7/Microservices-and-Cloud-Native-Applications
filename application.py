@@ -266,7 +266,7 @@ def login():
         tmp = {user: password}
         res = authentication.validate(tmp)
         if res:
-            encoded_password = jwt.encode({'password': password}, 'secret', algorithm='HS256').decode('utf-8')
+            encoded_password = jwt.encode({user: password}, 'secret', algorithm='HS256').decode('utf-8')
             rsp_data = {
                 "result": res,
                 "Token": encoded_password
