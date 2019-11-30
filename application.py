@@ -234,9 +234,8 @@ def user_register():
     #print("request", request.get_json())
     global _user_service
     if request.method == 'POST':
-        #TODO change last_name and first_name; need to talk with yuanrui
-        last_name = request.get_json().get("username")
-        first_name = request.get_json().get("displayname")
+        last_name = request.get_json().get("last_name")
+        first_name = request.get_json().get("first_name")
         email = request.get_json().get("email")
         password = request.get_json().get("password")
         id = str(uuid.uuid4())
@@ -349,7 +348,7 @@ def user_email(email):
             temp["email"] = email
             rsp_data = user_service.update_user(temp, client_etag)
             rsp_status = 200
-            rsp_txt = str("rsp_data")
+            rsp_txt = str(rsp_data)
 
         elif inputs["method"] == "DELETE":  # This SHOULD SET STATUS to DELETED instead of removing the tuple
             rsp_data = user_service.delete_user({"email": email})
