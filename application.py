@@ -13,7 +13,7 @@ from datetime import datetime
 # - Flask is the top-level application. You implement the application by adding methods to it.
 # - Response enables creating well-formed HTTP/REST responses.
 # - requests enables accessing the elements of an incoming HTTP/REST request.
-from flask import Flask, Response, request, render_template, redirect, url_for
+from flask import Flask, Response, request, render_template, redirect, url_for, g
 from flask_wtf import FlaskForm
 from flask_cors import CORS
 from wtforms import Form, StringField, PasswordField, validators, SubmitField
@@ -134,20 +134,24 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #
 #     return decorated_function
 
-#TODO Need to change a new way to handle before request!
-'''
+#TODO:need to sync with front end, right now should be Good :)
 @application.before_request
 def before_decorator():
+    #print("did I get request", request)
     rule = request.endpoint
-    # print("Endpoint: ", rule)
-    if rule is not 'login':
-        if request.get_json() is not None:
-            # print("authentication: ", request.get_json().get('password'))
-            if not authentication.passwordValidate(request.get_json().get('password')):
-                raise ValueError("your information cannot be identify")
+    if rule is 'login':
+        pass
+    else:
+        tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
+        user = tmp.get("user")
+        password = tmp.get("password")
+        if not authentication.passwordValidate(password):
+            raise ValueError("your information cannot be identify")
+        g.user = user
 
-'''
-#TODO add full_rsp.headers["Access-Control-Allow-Origin"] = "*" in after request!
+
+
+#TODO Do it at the end
 '''
 # @application.after_request
 # def after_decorator(rsp):
@@ -231,7 +235,6 @@ def log_response(method, status, data, txt):
 
 @application.route("/api/user/registration", methods=["GET", "POST"])
 def user_register():
-    #print("request", request.get_json())
     global _user_service
     if request.method == 'POST':
         last_name = request.get_json().get("last_name")
@@ -259,16 +262,14 @@ def user_register():
 @application.route("/api/user/login", endpoint="login", methods=["POST"])
 def login():
     error = None
+
     if request.method == 'POST':
-        # print(request.json)
         user = request.json['username']
         password = request.json['password']
         tmp = {user: password}
         res = authentication.validate(tmp)
-
-        print(res)
         if res:
-            encoded_password = jwt.encode({user: password}, 'secret', algorithm='HS256').decode('utf-8')
+            encoded_password = jwt.encode({'password': password, 'user':user}, 'secret', algorithm='HS256').decode('utf-8')
             rsp_data = {
                 "result": res,
                 "Token": encoded_password
@@ -279,7 +280,6 @@ def login():
             # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
             full_rsp.headers["Token"] = encoded_password
-            # print("encoded_password: ", encoded_password)
 
         else:
             error = 'Invalid Credentials. Please try again.'
@@ -290,12 +290,12 @@ def login():
             rsp_status = 504
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-
+        #TODO: change the URL ('http://localhost:4200')
         full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
         full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-
+        full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
 
     return full_rsp
 
@@ -709,11 +709,9 @@ def resource_by_template(primary_key_value=None):
 @application.route('/articles', methods=['GET'])
 def get_articles():
     try:
-        #TODO change to request[password] and do jwt.decode() we can directly get the user email from request
-        '''
-        user = resquest["user"] query from header
-        '''
-        results = UsersRDB.find_postinfo(user)
+        #TODO need to sync with fronted end should be good now :)
+        curr_user = g.user
+        results = UsersRDB.find_postinfo(curr_user)
 
         rsp_status = 200
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
@@ -740,4 +738,5 @@ if __name__ == "__main__":
 
     application.debug = True
     application.run()
+
 
