@@ -142,12 +142,19 @@ def before_decorator():
     if rule is 'login':
         pass
     else:
-        tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
-        user = tmp.get("user")
-        password = tmp.get("password")
-        if not authentication.passwordValidate(password):
-            raise ValueError("your information cannot be identify")
-        g.user = user
+        try:
+            #print("I go here, then run jwt.decode")
+            tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
+            user = tmp.get("user")
+            password = tmp.get("password")
+            if not authentication.passwordValidate(password):
+                raise ValueError("your information cannot be identify")
+            g.user = user
+        except Exception:
+            rsp_txt = "Not Found"
+            rsp_status = 404
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            return full_rsp
 
 
 
@@ -738,5 +745,6 @@ if __name__ == "__main__":
 
     application.debug = True
     application.run()
+
 
 
