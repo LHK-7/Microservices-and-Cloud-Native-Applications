@@ -24,11 +24,3 @@ class authentication():
         else:
             return False
 
-    @classmethod
-    def passwordValidate(self, password):
-        user_password = jwt.decode(password, 'secret', algorithms=['HS256'])
-        res = UsersRDB.validate_password(user_password.get('password'))
-        if res == user_password.get('password'):
-            return True
-        else:
-            return False
