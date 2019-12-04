@@ -112,20 +112,6 @@ class UsersRDB(BaseDataObject):
 
         return res
 
-    @classmethod
-    def validate_password(cls, password):
-        try:
-            sql = "select password from users where password = " + "'" + password + "'"
-            res, data = data_adaptor.run_q(sql)
-            if res != 1:
-                result = None
-            else:
-                res = data[0].get("password")
-        except Exception as e:
-            raise DataException()
-
-        return res
-
 
     @classmethod
     def find_postinfo(cls, user_email):
@@ -140,5 +126,7 @@ class UsersRDB(BaseDataObject):
             raise DataException()
 
         return res
+
+
 
 
