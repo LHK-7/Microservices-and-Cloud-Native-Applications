@@ -137,22 +137,22 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #TODO:need to sync with front end, right now should be Good :)
 @application.before_request
 def before_decorator():
-    #print("did I get request", request)
     rule = request.endpoint
-    if rule is 'login':
+    if rule is 'login' or request.method == 'OPTIONS':
         pass
     else:
         try:
-            #print("I go here, then run jwt.decode")
             tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
             user = tmp.get("user")
             password = tmp.get("password")
-            if not authentication.passwordValidate(password):
+
+            res = UsersRDB.validate_info(user)
+            if res != password:
                 raise ValueError("your information cannot be identify")
             g.user = user
         except Exception:
-            rsp_txt = "Not Found"
-            rsp_status = 404
+            rsp_txt = "Unauthorized user. Login required"
+            rsp_status = 504
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
             return full_rsp
 
