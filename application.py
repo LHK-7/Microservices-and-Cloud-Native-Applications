@@ -455,6 +455,17 @@ def ssvalid(d):
     return result
 
 
+# Input = {
+#       "street_line": "1211 S Coach Dr",
+#       "street_line_2": "APT #30",
+#       "city": "Catalina",
+#       "state": "AZ"
+# }
+#
+# Output =
+# “https://us-street.api.smartystreets.com/street-address?auth-id=8715bcc7-e3d8-b3b4-ed1f-c7485e2d6002&auth-token=vSQrfCmQIGHIW0WTn9J7&candidates=10&street=1211%20S%20Coach%20Dr%20&city=Catalina&state=AZ&zipcode=&match=invalid&street2=APT%20%233”
+
+
 @application.route("/addresses", methods=["POST"])
 def postAddressService(address):
     if request.method == "POST":
