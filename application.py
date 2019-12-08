@@ -65,10 +65,11 @@ application = Flask(__name__)
 
 # we may not need this
 config = {
-    'ORIGINS': [
-        'http://localhost:4200',  # angular
-        'http://127.0.0.1:5000/ ',  # flask
-    ]
+  # 'ORIGINS': [
+  #   'http://localhost:4200',  # angular
+  #   'http://127.0.0.1:5000/ ',  # flask
+  # ]
+    'ORIGINS': '*'
 }
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
@@ -732,6 +733,42 @@ def get_articles():
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
+        return full_rsp
+
+
+@application.route("/logout", methods=['GET','PUT','POST'])
+def logout():
+    g.user = None
+    results = 'Logged Out!'
+    rsp_status = 200
+    full_rsp = Response(results, status=rsp_status, content_type="application/json")
+    full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+    return full_rsp
+
+@application.route('/articles/<postId>', methods=['GET','POST'])
+def get_comments(postId):
+    if request.method == 'GET':
+        try:
+            results = UsersRDB.get_comments_of_post(postId)
+            rsp_status = 200
+        except Exception as e:
+            results = "Not Found"
+            rsp_status = 404
+
+        full_rsp = Response(results, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+        return full_rsp
+    elif request.method == 'POST':
+        curr_user = g.user
+        content = {'author':curr_user,'to_post':postId,'content':request.json['content'],'date':request.json['date']}
+        try:
+            results = UsersRDB.create_comment(content)
+            rsp_status = 200
+        except Exception as e:
+            results = "Not Found"
+            rsp_status = 404
+        full_rsp = Response(results, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
 
 

@@ -130,15 +130,42 @@ class UsersRDB(BaseDataObject):
     @classmethod
     def find_postinfo(cls, user_email):
         try:
-            sql = "select content, image, date from posts where author = " + "'" + user_email + "'"
+            sql = "select id,content, image, date from posts where author = " + "'" + user_email + "'"
             res, data = data_adaptor.run_q(sql)
             if res == 0:
-                result = "there is no post"
+                result = json.dumps([], indent=4, sort_keys=True, default=str)
             else:
-                res = json.dumps(data, indent=4, sort_keys=True, default=str)
+                result = json.dumps(data, indent=4, sort_keys=True, default=str)
         except Exception as e:
             raise DataException()
 
-        return res
+        return result
 
+    @classmethod
+    def get_comments_of_post(cls, postId):
+        try:
+            sql = "select * from comments where to_post=%s"
+            res, data = data_adaptor.run_q(sql=sql, args=(postId), fetch=True)
+            if res == 0:
+                result = "there is no comment"
+            else:
+                result = json.dumps(data, indent=4, sort_keys=True, default=str)
+        except Exception as e:
+            raise DataException()
 
+        return result
+
+    @classmethod
+    def create_comment(cls, content):
+
+        try:
+            sql, args = data_adaptor.create_insert(table_name="comments", row=content)
+            res, data = data_adaptor.run_q(sql, args)
+            if res != 1:
+                result = json.dumps([], indent=4, sort_keys=True, default=str)
+            else:
+                result = json.dumps(data, indent=4, sort_keys=True, default=str)
+        except Exception as e:
+            raise DataException()
+
+        return result
