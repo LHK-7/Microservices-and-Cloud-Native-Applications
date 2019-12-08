@@ -1,4 +1,4 @@
-# ENV VARS
+# Set up the following THREE environment variables before running.
 # test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
 # dynamo=
 # sns=
@@ -17,8 +17,6 @@ from flask import Flask, Response, request, render_template, redirect, url_for, 
 from flask_wtf import FlaskForm
 from flask_cors import CORS
 from wtforms import Form, StringField, PasswordField, validators, SubmitField
-from smartystreets_python_sdk import StaticCredentials, exceptions, ClientBuilder
-from smartystreets_python_sdk.us_street import Lookup
 from functools import wraps
 import jwt
 
@@ -29,6 +27,7 @@ from CustomerInfo.Users import UsersService as UserService, to_etag
 from Middleware.authentication import authentication
 from Middleware.authorization import authorization
 from DataAccess.DataObject import UsersRDB as UsersRDB
+from CustomerInfo.Address import validate_address
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -343,17 +342,8 @@ def user_email(email):
 
         elif inputs["method"] == 'POST':
             client_etag = request.headers["ETag"]
-
-            # form = RegisterForm(request.form)
-            # if form.validate():
-            #     last_name = form.last_name.data
-            #     first_name = form.first_name.data
-            #     email = form.email.data
-            #     password = form.password.data
-            #     id = str(uuid.uuid4())
-            #
-            #     res = [id, last_name, first_name, email, password]
-            #     temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
+            # res = [id, last_name, first_name, email, password]
+            # temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
             temp = request.json
             temp["email"] = email
             rsp_data = user_service.update_user(temp, client_etag)
@@ -390,80 +380,6 @@ def user_email(email):
     log_response("/email", rsp_status, rsp_data, rsp_txt)
 
     return full_rsp
-
-
-class Profile1(FlaskForm):
-    user = StringField('user')
-    Email = StringField('Email')
-    Email_sub = StringField('Email_sub')
-    Telephone = StringField('Telephone')
-    Telephone_sub = StringField('Telephone_sub')
-    Address_zipcode = StringField('Address_zipcode')
-    Address_State = StringField('Address_State')
-    Address_City = StringField('Address_City')
-    Address_Street = StringField('Address_Street')
-    Address_Street2 = StringField('Address_Street2')
-    submit = SubmitField('submit')
-
-
-class Profile2(FlaskForm):
-    Email = StringField('Email')
-    Email_sub = StringField('Email_sub')
-    Telephone = StringField('Telephone')
-    Telephone_sub = StringField('Telephone_sub')
-    Address_zipcode = StringField('Address_zipcode')
-    Address_State = StringField('Address_State')
-    Address_City = StringField('Address_City')
-    Address_Street = StringField('Address_Street')
-    Address_Street2 = StringField('Address_Street2')
-    submit = SubmitField('submit')
-    delete = SubmitField('delete')
-
-
-def ssvalid(d):
-    auth_id = "8715bcc7-e3d8-b3b4-ed1f-c7485e2d6002"
-    auth_token = "vSQrfCmQIGHIW0WTn9J7"
-    credentials = StaticCredentials(auth_id, auth_token)
-    client = ClientBuilder(credentials).build_us_street_api_client()
-    lookup = Lookup()
-    lookup.input_id = "1"  # Optional ID from your system
-    lookup.street = d["street"]
-    lookup.street2 = d["street2"]
-    lookup.secondary = ""
-    lookup.city = d["city"]
-    lookup.state = d["state"]
-    lookup.zipcode = d["zipcode"]
-    lookup.candidates = 3
-    lookup.match = "Invalid"  # "invalid" is th
-    try:
-        client.send_lookup(lookup)
-    except exceptions.SmartyException as err:
-        return err
-
-    result = lookup.result
-
-    # if not result:
-    #     return ("No candidates. This means the address is not valid.")
-
-    # first_candidate = result[0]
-    # print("ZIP Code: " + first_candidate.components.zipcode)
-    # print("County: " + first_candidate.metadata.county_name)
-    # print("Latitude: {}".format(first_candidate.metadata.latitude))
-    # print("Longitude: {}".format(first_candidate.metadata.longitude))
-
-    # return ("Address is valid.")
-    return result
-
-
-# Input = {
-#       "street_line": "1211 S Coach Dr",
-#       "street_line_2": "APT #30",
-#       "city": "Catalina",
-#       "state": "AZ"
-# }
-#
-# Output =
-# “https://us-street.api.smartystreets.com/street-address?auth-id=8715bcc7-e3d8-b3b4-ed1f-c7485e2d6002&auth-token=vSQrfCmQIGHIW0WTn9J7&candidates=10&street=1211%20S%20Coach%20Dr%20&city=Catalina&state=AZ&zipcode=&match=invalid&street2=APT%20%233”
 
 
 @application.route("/addresses", methods=["POST"])
