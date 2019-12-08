@@ -407,6 +407,7 @@ test_received = {
     "city": "Anchorage",
     "state": "AK"
 }
+# TODO: Not sure the purpose of this route yet.
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
@@ -566,10 +567,10 @@ def profile_service_1():
         return "Success"
 
 
+# TODO: Not sure the purpose of this route yet.
 @application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
 def profile_service_2(email):
     global _user_service
-    form = Profile2(request.form)
 
     if request.method == "GET":
         post = []
@@ -577,11 +578,6 @@ def profile_service_2(email):
         rsp_data = DataAdaptor.run_q(sql)
         # print("\n", rsp_data)
         post.append(rsp_data)
-        # sql = str("SELECT address_number FROM profile where user = " + "\"" + email + "\"" + ";")
-        # post.append(rsp_data)
-        # addnumber = int(data_adaptor.run_q(sql))
-        # address_post = getAddress(addnumber)
-        # post = rsp + address_post
         tmp = {
             "links": [
                 {
@@ -597,49 +593,42 @@ def profile_service_2(email):
             ]
         }
         post.append(tmp)
-        post = json.dumps(post)
+        return json.dumps(post)
 
     elif request.method == "PUT":
-        post = "update success"
+        received = request.json
 
-        Email = form.Email.data
-        Email_sub = form.Email_sub.data
-        Telephone = form.Telephone.data
-        Telephone_sub = form.Telephone_sub.data
-        Address_zipcode = form.Address_zipcode.data
-        Address_State = form.Address_State.data
-        Address_City = form.Address_City.data
-        Address_Street = form.Address_Street.data
-        Address_Street2 = form.Address_Street2.data
-        addressInputTrue = Address_zipcode or Address_State or Address_City or Address_Street or Address_Street2
-        address = {"zipcode": Address_zipcode, "state": Address_State, "city": Address_City, "street": Address_Street,
-                   "street2": Address_Street2}
+        # # Update display_name.
+        # # new_val =
+        # sql = str(
+        #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
+        # rsp_data = DataAdaptor.run_q(sql)
+        #
+        # # Update home_phone
+        # sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
+        # address_id = DataAdaptor.run_q(sql)[1][0]["value"]
+        # dynamo.updateAddress(address, address_id)
+        #
+        # # Update work_phone
+        # sql = str(
+        #     "UPDATE profile SET value = " + "\"" + phone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
+        # rsp_data = DataAdaptor.run_q(sql)
+        #
+        # # Update address.
+        # sql = str(
+        #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
+        # rsp_data = DataAdaptor.run_q(sql)
+        # # print(sql)
 
-        if addressInputTrue:
-            if not ssvalid(address):
-                return "No candidates. This means the address is not valid. Please go back and submit again."
-            sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
-            address_id = DataAdaptor.run_q(sql)[1][0]["value"]
-            dynamo.updateAddress(address, address_id)
-        if Email:
-            sql = str(
-                "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
-            rsp_data = DataAdaptor.run_q(sql)
-            # print(sql)
-        if Telephone:
-            sql = str(
-                "UPDATE profile SET value = " + "\"" + Telephone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
-            rsp_data = DataAdaptor.run_q(sql)
+        return "Update Success."
 
     elif request.method == "DELETE":
-        # print("email = ", email)
         sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
         rsp_data = DataAdaptor.run_q(sql)
-        return redirect(url_for("profile_2", email=email))
-
-    return render_template("profile2.html", form=form, post=post)
+        return "Delete Success."
 
 
+# TODO: Not sure the purpose of this route yet.
 @application.route("/api/customers/<email>/profile", methods=["GET"])
 def show_profile(email):
     global _user_service
