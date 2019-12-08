@@ -25,10 +25,19 @@ def reformat(address):
         "city": {
             "S": address["components"]['city_name']
         },
-        "street": {
-            "S": address["delivery_line_1"]
+        "street_line": {
+            "S": str(address['components']['primary_number'] + " "
+                     + address['components']['street_name'] + " "
+                     + address['components']['street_suffix'])
         }
     }
+    if 'secondary_number' in address['components']:
+        item.update({
+            "street_line_2": {
+                "S": str(address['components']['secondary_designator'] + " "
+                         + address['components']['secondary_number'])
+            }
+        })
     return item
 
 

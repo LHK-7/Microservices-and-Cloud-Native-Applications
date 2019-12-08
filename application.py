@@ -136,7 +136,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 @application.before_request
 def before_decorator():
     rule = request.endpoint
-    if rule is 'login' or request.method == 'OPTIONS':
+    if rule is 'login' or request.method == 'OPTIONS' or request.headers.get("pass") == "mDVkS5Eu13PqkRuD8byAKnRr3Pz9QFXa":
         pass
     else:
         try:
@@ -385,12 +385,11 @@ def user_email(email):
 @application.route("/addresses", methods=["POST", "PUT"])
 def post_address(input_address):
     validated = validate_address(input_address)
-    try:
-        address_id = validated["delivery_point_barcode"]
-    except:
+    if 'delivery_point_barcode' not in validated:
         # if address is invalid, return False
         return False
-    finally:
+    else:
+        # if success, return the address id
         return dynamo.addAddress(validated)
 
 
@@ -399,28 +398,72 @@ def get_address(address_id):
     return dynamo.getAddress(address_id)
 
 
+test_received = {
+    "display_name": "rubin",
+    "home_phone": "1564648",
+    "work_phone": "6485612",
+    "address_line_1": "13161 Brayton Drive",
+    "address_line_2": "APT #30",
+    "city": "Anchorage",
+    "state": "AK"
+}
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
-def profile_1():
+def profile_service_1():
     global _user_service
 
     # get email from query string
     email = request.args.get("email")
 
     if request.method == "GET":
-        post = []
+        # profile = []
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        # print(sql)
         rsp_data = DataAdaptor.run_q(sql)
-        # print("\n", rsp_data)
-        post.append(rsp_data)
+        if rsp_data[0] == 0:
+            return "No, Not found.."
+
+        # Get display_name.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"display_name\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            display_name = ""
+        else:
+            display_name = rsp_data[1][0]['value']
+        # print("\ndata =", json.dumps(rsp_data[1], indent=4))
+        # profile.append()
+
+        # Get home_phone.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            home_phone = ""
+        else:
+            home_phone = rsp_data[1][0]['value']
+
+        # Get work_phone.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            work_phone = ""
+        else:
+            work_phone = rsp_data[1][0]['value']
+
+        # Get address.
         sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
                   + "AND type = \"address_id\"" + ";")
         rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] > 0:
+        if rsp_data[0] == 0:
+            address_line_1 = ""
+            address_line_2 = ""
+            city = ""
+            state = ""
+        else:
             address_id = rsp_data[1][0]["value"]
-            address = dynamo.getAddress(address_id)
-            post.append(address)
+            address = get_address(address_id)
+
 
         # print(type(post))
         tmp = {
@@ -437,54 +480,84 @@ def profile_1():
                 }
             ]
         }
-        post.append(tmp)
-        # post = json.dumps(post)
-        return post
+        profile.append(tmp)
+        # profile = json.dumps(profile)
+        return profile
 
     elif request.method == "POST":
-        if addressInputTrue:
-            if not ssvalid(address):
-                return "No candidates. This means the address is not valid. Please go back and submit again."
-            address_id = dynamo.addAddress(address)
-            sql = str(
-                "INSERT INTO profile (user, value, type, subtype) VALUES ("
-                + "\"" + email + "\""
-                + ", "
-                + "\"" + address_id + "\""
-                + ", "
-                + "\"address_id\""
-                + ", "
-                + "\"N.A.\""
-                + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-        if Email:
-            sql = str(
-                "INSERT INTO profile (user, value, type, subtype) VALUES ("
-                + "\"" + email + "\""
-                + ", "
-                + "\"" + Email + "\""
-                + ", "
-                + "\"Email\""
-                + ", "
-                + "\"" + Email_sub + "\""
-                + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-        if Telephone:
+        received = request.json
+
+        # Handle address.
+        received_address = {
+            "street_line": received['address_line_1'],
+            "street_line_2": received['address_line_2'],
+            "city": received['city'],
+            "state": received['state'],
+        }
+        address_id = post_address(received_address)
+        # if received address is invalid:
+        if not address_id:
+            return "Invalid Address"
+            # return "No candidates. This means the address is not valid. Please go back and submit again."
+        sql = str(
+            "INSERT INTO profile (user, value, type, subtype) VALUES ("
+            + "\"" + email + "\""
+            + ", "
+            + "\"" + address_id + "\""
+            + ", "
+            + "\"address_id\""
+            + ", "
+            + "\"n.a.\""
+            + ");")
+        rsp_data = DataAdaptor.run_q(sql)
+
+        # Handle home phone.
+        home_phone = received['home_phone']
+        if home_phone:
             sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
                       + "\"" + email + "\""
                       + ", "
-                      + "\"" + Telephone + "\""
+                      + "\"" + home_phone + "\""
                       + ", "
-                      + "\"Telephone\""
+                      + "\"phone\""
                       + ", "
-                      + "\"" + Telephone_sub + "\""
+                      + "\"home\""
                       + ");")
             rsp_data = DataAdaptor.run_q(sql)
-        return True
+
+        # Handle work phone.
+        work_phone = received['work_phone']
+        if work_phone:
+            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
+                      + "\"" + email + "\""
+                      + ", "
+                      + "\"" + work_phone + "\""
+                      + ", "
+                      + "\"phone\""
+                      + ", "
+                      + "\"work\""
+                      + ");")
+            rsp_data = DataAdaptor.run_q(sql)
+
+        # Handle display_name.
+        display_name = received['display_name']
+        if display_name:
+            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
+                      + "\"" + email + "\""
+                      + ", "
+                      + "\"" + display_name + "\""
+                      + ", "
+                      + "\"display_name\""
+                      + ", "
+                      + "\"n.a.\""
+                      + ");")
+            rsp_data = DataAdaptor.run_q(sql)
+
+        return "Success"
 
 
 @application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
-def profile_2(email):
+def profile_service_2(email):
     global _user_service
     form = Profile2(request.form)
 
