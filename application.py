@@ -258,7 +258,7 @@ def user_register():
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         return full_rsp
 
-    rsp_txt = json.dumps("user do not create due an uncontroled reason")
+    rsp_txt = json.dumps("User is not created due to an unknown reason.")
     rsp_status = 200
     full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
     return full_rsp
@@ -431,7 +431,16 @@ def profile_service_1():
             display_name = ""
         else:
             display_name = rsp_data[1][0]['value']
-        # print("\ndata =", json.dumps(rsp_data[1], indent=4))
+        print("\nsql data =", json.dumps(rsp_data[1], indent=4))
+        # The sql response is a list, inside which is an unordered dict.
+        # sql data = [
+        #     {
+        #         "user": "maruibin123@gmail.com",
+        #         "type": "display_name",
+        #         "subtype": "n.a.",
+        #         "value": "rubin"
+        #     }
+        # ]
         # profile.update()
 
         # Get home_phone.
@@ -464,7 +473,7 @@ def profile_service_1():
         else:
             address_id = rsp_data[1][0]["value"]
             address = get_address(address_id)
-            print(json.dumps(address, indent=4))
+            # print(json.dumps(address, indent=4))
             address_line_1 = address['address_line_1']
             address_line_2 = address['address_line_2']
             city = address['city']
