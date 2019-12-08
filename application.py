@@ -65,11 +65,10 @@ application = Flask(__name__)
 
 # we may not need this
 config = {
-  # 'ORIGINS': [
-  #   'http://localhost:4200',  # angular
-  #   'http://127.0.0.1:5000/ ',  # flask
-  # ]
-    'ORIGINS': '*'
+  'ORIGINS': [
+    'http://localhost:4200',  # angular
+    'http://127.0.0.1:5000/ ',  # flask
+  ]
 }
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
@@ -137,10 +136,12 @@ application.config['SECRET_KEY'] = SECRET_KEY
 @application.before_request
 def before_decorator():
     rule = request.endpoint
-    if rule is 'login' or request.method == 'OPTIONS' or request.headers.get("pass") == "mDVkS5Eu13PqkRuD8byAKnRr3Pz9QFXa":
-        pass
-    else:
-        try:
+    try:
+        if rule is 'registration' or request.method == 'OPTIONS':
+            pass
+        elif rule is 'login':
+            pass
+        else:
             tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
             user = tmp.get("user")
             password = tmp.get("password")
@@ -149,13 +150,12 @@ def before_decorator():
             if res != password:
                 raise ValueError("your information cannot be identify")
             g.user = user
-        except Exception:
-            rsp_txt = "Unauthorized user. Login required"
-            rsp_status = 504
-            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            return full_rsp
-
-
+    except Exception:
+        print("...!!!")
+        rsp_txt = "Unauthorized user. Login required"
+        rsp_status = 504
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+        return full_rsp
 # TODO Do it at the end
 '''
 # @application.after_request
