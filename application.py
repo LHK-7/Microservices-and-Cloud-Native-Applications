@@ -65,16 +65,15 @@ application = Flask(__name__)
 
 # we may not need this
 config = {
-  'ORIGINS': [
-    'http://localhost:4200',  # angular
-    'http://127.0.0.1:5000/ ',  # flask
-  ]
+    'ORIGINS': [
+        'http://localhost:4200',  # angular
+        'http://127.0.0.1:5000/ ',  # flask
+    ]
 }
 # Enable CORS
-CORS(application,resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
+CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
 
 application.config['CORS_HEADERS',] = 'Content-Type'
-
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -133,7 +132,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #
 #     return decorated_function
 
-#TODO:need to sync with front end, right now should be Good :)
+# TODO:need to sync with front end, right now should be Good :)
 @application.before_request
 def before_decorator():
     rule = request.endpoint
@@ -156,14 +155,14 @@ def before_decorator():
             return full_rsp
 
 
-
-#TODO Do it at the end
+# TODO Do it at the end
 '''
 # @application.after_request
 # def after_decorator(rsp):
 #     print("... In after decorator ...")
 #     return rsp
 '''
+
 
 # 1. Extract the input information from the requests object.
 # 2. Log the information
@@ -275,7 +274,8 @@ def login():
         tmp = {user: password}
         res = authentication.validate(tmp)
         if res:
-            encoded_password = jwt.encode({'password': password, 'user':user}, 'secret', algorithm='HS256').decode('utf-8')
+            encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
+                'utf-8')
             rsp_data = {
                 "result": res,
                 "Token": encoded_password
@@ -296,7 +296,7 @@ def login():
             rsp_status = 504
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-        #TODO: change the URL ('http://localhost:4200')
+        # TODO: change the URL ('http://localhost:4200')
         full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
@@ -382,16 +382,21 @@ def user_email(email):
     return full_rsp
 
 
-@application.route("/addresses", methods=["POST"])
-def postAddressService(address):
-    if request.method == "POST":
-        return dynamo.addAddress(address)
+@application.route("/addresses", methods=["POST", "PUT"])
+def post_address(input_address):
+    validated = validate_address(input_address)
+    try:
+        address_id = validated["delivery_point_barcode"]
+    except:
+        # if address is invalid, return False
+        return False
+    finally:
+        return dynamo.addAddress(validated)
 
 
 @application.route("/addresses/<address_id>", methods=["GET"])
-def getAddressidService(address_id):
-    if request.method == "GET":
-        return dynamo.getAddress(address_id)
+def get_address(address_id):
+    return dynamo.getAddress(address_id)
 
 
 # query string: ?email=<email>
@@ -399,21 +404,8 @@ def getAddressidService(address_id):
 def profile_1():
     global _user_service
 
+    # get email from query string
     email = request.args.get("email")
-
-    form = Profile1(request.form)
-    Email = form.Email.data
-    Email_sub = form.Email_sub.data
-    Telephone = form.Telephone.data
-    Telephone_sub = form.Telephone_sub.data
-    Address_zipcode = form.Address_zipcode.data
-    Address_State = form.Address_State.data
-    Address_City = form.Address_City.data
-    Address_Street = form.Address_Street.data
-    Address_Street2 = form.Address_Street2.data
-    addressInputTrue = Address_zipcode or Address_State or Address_City or Address_Street or Address_Street2
-    address = {"zipcode": Address_zipcode, "state": Address_State, "city": Address_City, "street": Address_Street,
-               "street2": Address_Street2}
 
     if request.method == "GET":
         post = []
@@ -447,7 +439,7 @@ def profile_1():
         }
         post.append(tmp)
         # post = json.dumps(post)
-        return render_template("profile.html", form=form, post=post)
+        return post
 
     elif request.method == "POST":
         if addressInputTrue:
@@ -488,7 +480,7 @@ def profile_1():
                       + "\"" + Telephone_sub + "\""
                       + ");")
             rsp_data = DataAdaptor.run_q(sql)
-        return redirect(url_for("profile_2", email=email))
+        return True
 
 
 @application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
@@ -640,10 +632,11 @@ def resource_by_template(primary_key_value=None):
 
         return full_rsp
 
+
 @application.route('/articles', methods=['GET'])
 def get_articles():
     try:
-        #TODO need to sync with fronted end should be good now :)
+        # TODO need to sync with fronted end should be good now :)
         curr_user = g.user
         results = UsersRDB.find_postinfo(curr_user)
 
@@ -672,6 +665,3 @@ if __name__ == "__main__":
 
     application.debug = True
     application.run()
-
-
-

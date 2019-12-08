@@ -1,6 +1,6 @@
 import boto3
 import json
-import uuid
+# import uuid
 import os
 
 
@@ -12,25 +12,21 @@ REGION = dynamo['REGION']
 
 
 def reformat(address):
-    # type(address): dict
     item = {
         "address_id": {
-            "S": str(uuid.uuid4())
+            "S": address['delivery_point_barcode']
         },
         "zipcode": {
-            "S": address["zipcode"]
+            "S": address['components']['zipcode']
         },
         "state": {
-            "S": address["state"]
+            "S": address["components"]['state_abbreviation']
         },
         "city": {
-            "S": address["city"]
+            "S": address["components"]['city_name']
         },
         "street": {
-            "S": address["street"]
-        },
-        "street2": {
-            "S": address["street2"]
+            "S": address["delivery_line_1"]
         }
     }
     return item
@@ -86,8 +82,7 @@ def updateAddress(address, address_id):
             "#C": "zipcode",
             "#D": "state",
             "#E": "city",
-            "#F": "street",
-            "#G": "street2"
+            "#F": "street"
         },
         ExpressionAttributeValues={
             ':c': {
@@ -102,12 +97,9 @@ def updateAddress(address, address_id):
             ':f': {
                 'S': address["street"],
             },
-            ':g': {
-                'S': address["street2"],
-            },
         },
         ReturnValues='ALL_NEW',
         TableName='address',
-        UpdateExpression='SET #C = :c, #D = :d, #E = :e, #F = :f, #G = :g',
+        UpdateExpression='SET #C = :c, #D = :d, #E = :e, #F = :f',
     )
     return response
