@@ -10,8 +10,8 @@ import json
 def validate_address(input_address):
     auth_id = "8715bcc7-e3d8-b3b4-ed1f-c7485e2d6002"
     auth_token = "vSQrfCmQIGHIW0WTn9J7"
-    street_line = input_address['street_line']
-    street2 = input_address['street_line_2']
+    street_line = input_address['address_line_1']
+    street2 = input_address['address_line_2']
     city = input_address['city']
     state = input_address['state']
     tmp = "https://us-street.api.smartystreets.com/street-address?auth-id=" + auth_id + "&auth-token=" + auth_token \

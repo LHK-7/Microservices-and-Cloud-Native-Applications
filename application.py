@@ -416,7 +416,7 @@ def profile_service_1():
     email = request.args.get("email")
 
     if request.method == "GET":
-        # profile = []
+        # profile = {}
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
         rsp_data = DataAdaptor.run_q(sql)
         if rsp_data[0] == 0:
@@ -431,7 +431,7 @@ def profile_service_1():
         else:
             display_name = rsp_data[1][0]['value']
         # print("\ndata =", json.dumps(rsp_data[1], indent=4))
-        # profile.append()
+        # profile.update()
 
         # Get home_phone.
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
@@ -463,10 +463,21 @@ def profile_service_1():
         else:
             address_id = rsp_data[1][0]["value"]
             address = get_address(address_id)
+            print(json.dumps(address, indent=4))
+            address_line_1 = address['address_line_1']
+            address_line_2 = address['address_line_2']
+            city = address['city']
+            state = address['state']
 
-
-        # print(type(post))
-        tmp = {
+        # Construct profile.
+        profile = {
+            "display_name": display_name,
+            "home_phone": home_phone,
+            "work_phone": work_phone,
+            "address_line_1": address_line_1,
+            "address_line_2": address_line_2,
+            "city": city,
+            "state": state,
             "links": [
                 {
                     "href": "api/profile/<email> ",
@@ -480,8 +491,7 @@ def profile_service_1():
                 }
             ]
         }
-        profile.append(tmp)
-        # profile = json.dumps(profile)
+
         return profile
 
     elif request.method == "POST":
@@ -489,8 +499,8 @@ def profile_service_1():
 
         # Handle address.
         received_address = {
-            "street_line": received['address_line_1'],
-            "street_line_2": received['address_line_2'],
+            "address_line_1": received['address_line_1'],
+            "address_line_2": received['address_line_2'],
             "city": received['city'],
             "state": received['state'],
         }
