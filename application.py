@@ -66,10 +66,11 @@ application = Flask(__name__)
 
 # we may not need this
 config = {
-  'ORIGINS': [
-    'http://localhost:4200',  # angular
-    'http://127.0.0.1:5000/ ',  # flask
-  ]
+  # 'ORIGINS': [
+  #   'http://localhost:4200',  # angular
+  #   'http://127.0.0.1:5000/ ',  # flask
+  # ]
+    'ORIGINS': '*'
 }
 # Enable CORS
 CORS(application,resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
@@ -138,24 +139,28 @@ application.config['SECRET_KEY'] = SECRET_KEY
 @application.before_request
 def before_decorator():
     rule = request.endpoint
-    if rule is 'login' or request.method == 'OPTIONS':
-        pass
-    else:
-        try:
+    try:
+        if rule is 'registration' or request.method == 'OPTIONS':
+            pass
+        elif rule is 'login':
+            pass
+        else:
             tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
+            print(tmp)
             user = tmp.get("user")
             password = tmp.get("password")
 
             res = UsersRDB.validate_info(user)
+            print('res',res)
             if res != password:
+                print(res,password)
                 raise ValueError("your information cannot be identify")
             g.user = user
-        except Exception:
-            rsp_txt = "Unauthorized user. Login required"
-            rsp_status = 504
-            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            return full_rsp
-
+    except Exception as e:
+        rsp_txt = "Unauthorized user. Login required"
+        rsp_status = 504
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+        return full_rsp
 
 
 #TODO Do it at the end
@@ -269,12 +274,13 @@ def user_register():
 @application.route("/api/user/login", endpoint="login", methods=["POST"])
 def login():
     error = None
-
+    print(request.json)
     if request.method == 'POST':
         user = request.json['username']
         password = request.json['password']
         tmp = {user: password}
         res = authentication.validate(tmp)
+        print(res)
         if res:
             encoded_password = jwt.encode({'password': password, 'user':user}, 'secret', algorithm='HS256').decode('utf-8')
             rsp_data = {
@@ -298,7 +304,7 @@ def login():
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         #TODO: change the URL ('http://localhost:4200')
-        full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
+        full_rsp.headers["Access-Control-Allow-Origin"] = '*'
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
         full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
@@ -730,18 +736,54 @@ def get_articles():
         #TODO need to sync with fronted end should be good now :)
         curr_user = g.user
         results = UsersRDB.find_postinfo(curr_user)
-
+        print(results)
         rsp_status = 200
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
         return full_rsp
     except Exception as e:
+        print(e)
         rsp_txt = "Not Found"
         rsp_status = 404
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
+        return full_rsp
+
+@application.route("/logout", methods=['GET','PUT','POST'])
+def logout():
+    g.user = None
+    results = 'Logged Out!'
+    rsp_status = 200
+    full_rsp = Response(results, status=rsp_status, content_type="application/json")
+    full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+    return full_rsp
+
+@application.route('/articles/<postId>', methods=['GET','POST'])
+def get_comments(postId):
+    if request.method == 'GET':
+        try:
+            results = UsersRDB.get_comments_of_post(postId)
+            rsp_status = 200
+        except Exception as e:
+            results = "Not Found"
+            rsp_status = 404
+
+        full_rsp = Response(results, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+        return full_rsp
+    elif request.method == 'POST':
+        curr_user = g.user
+        content = {'author':curr_user,'to_post':postId,'content':request.json['content'],'date':request.json['date']}
+        try:
+            results = UsersRDB.create_comment(content)
+            rsp_status = 200
+        except Exception as e:
+            results = "Not Found"
+            rsp_status = 404
+        full_rsp = Response(results, status=rsp_status, content_type="application/json")
+        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
 
 
