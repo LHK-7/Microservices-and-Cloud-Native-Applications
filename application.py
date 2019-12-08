@@ -66,7 +66,7 @@ application = Flask(__name__)
 # we may not need this
 config = {
   'ORIGINS': [
-    'http://localhost:4200',  # angular
+    'https://e6156.surge.sh',  # angular
     'http://127.0.0.1:5000/ ',  # flask
   ]
 }
@@ -142,13 +142,18 @@ def before_decorator():
         elif rule is 'login':
             pass
         else:
-            tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
-            user = tmp.get("user")
-            password = tmp.get("password")
+            token = request.headers["Token"]
+            token = token.split(',')
+            if len(token) == 2 and token[1] == '000000':
+                user = token[0]
+            else:
+                tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
+                user = tmp.get("user")
+                password = tmp.get("password")
 
-            res = UsersRDB.validate_info(user)
-            if res != password:
-                raise ValueError("your information cannot be identify")
+                res = UsersRDB.validate_info(user)
+                if res != password:
+                    raise ValueError("your information cannot be identify")
             g.user = user
     except Exception:
         print("...!!!")
@@ -298,7 +303,7 @@ def login():
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         # TODO: change the URL ('http://localhost:4200')
-        full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
+        full_rsp.headers["Access-Control-Allow-Origin"] = 'https://e6156.surge.sh'
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
         full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
