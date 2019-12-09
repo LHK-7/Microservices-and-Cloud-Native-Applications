@@ -19,12 +19,6 @@ def to_etag(data):
     return m.hexdigest()
 
 
-def check_status(email):
-    sql = str("SELECT status FROM users where email = " + "\"" + email + "\"" + ";")
-    rsp_data = DataAdaptor.run_q(sql)
-
-
-
 class ServiceException(Exception):
     unknown_error = 9001
     missing_field = 9002

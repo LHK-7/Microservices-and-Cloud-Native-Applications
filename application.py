@@ -290,12 +290,23 @@ def login():
                 "result": res,
                 "Token": encoded_password
             }
-            # print(type(rsp_data), rsp_data)
-            rsp_status = 200
-            rsp_txt = json.dumps(rsp_data)
-            # print(type(json.dumps(rsp_data)))
-            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            full_rsp.headers["Token"] = encoded_password
+            sql = str("SELECT status FROM users where email = " + "\"" + user + "\"" + ";")
+            data = DataAdaptor.run_q(sql)
+            # print(json.dumps(data, indent=4))
+            status = data[1][0]['status']
+            if status == 'ACTIVE':
+                # print(type(rsp_data), rsp_data)
+                rsp_status = 200
+                rsp_txt = json.dumps(rsp_data)
+                # print(type(json.dumps(rsp_data)))
+                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+                full_rsp.headers["Token"] = encoded_password
+            else:
+                # print(type(rsp_data), rsp_data)
+                rsp_status = 403
+                rsp_txt = "User not Activated."
+                # print(type(json.dumps(rsp_data)))
+                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
         else:
             error = 'Invalid Credentials. Please try again.'
