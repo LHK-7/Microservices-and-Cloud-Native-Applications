@@ -880,28 +880,40 @@ def resource_by_template(primary_key_value=None):
         return full_rsp
 
 
-@application.route('/articles/<postId>', methods=['GET','POST'])
-def get_comments(postId):
+@application.route('/articles', methods=['GET','POST'])
+def get_articles():
     if request.method == 'GET':
         try:
-            results = UsersRDB.get_comments_of_post(postId)
-            rsp_status = 200
-        except Exception as e:
-            results = "Not Found"
-            rsp_status = 404
+            # TODO need to sync with fronted end should be good now :)
+            curr_user = g.user
+            results = UsersRDB.find_postinfo(curr_user)
 
-        full_rsp = Response(results, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
-        return full_rsp
+            rsp_status = 200
+            full_rsp = Response(results, status=rsp_status, content_type="application/json")
+            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+            return full_rsp
+        except Exception as e:
+            rsp_txt = "Not Found"
+            rsp_status = 404
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+
+            return full_rsp
     elif request.method == 'POST':
         curr_user = g.user
-        content = {'author':curr_user,'to_post':postId,'content':request.json['content'],'date':request.json['date']}
+        content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'], 'date': request.json['date']}
         try:
-            results = UsersRDB.create_comment(content)
+            result = UsersRDB.create_post(content)
+            if result == 1:
+                results = UsersRDB.find_postinfo(curr_user)
+            else:
+                results = []
             rsp_status = 200
         except Exception as e:
-            results = "Cannot make the comment. Please try again later."
+            results = "Cannot create the post! Please try again."
             rsp_status = 404
+
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
@@ -931,6 +943,7 @@ def get_comments(postId):
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
+
     elif request.method == 'POST':
         curr_user = g.user
         content = {'author': curr_user, 'to_post': postId, 'content': request.json['content'],
