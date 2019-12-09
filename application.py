@@ -66,7 +66,8 @@ application = Flask(__name__)
 # we may not need this
 config = {
     'ORIGINS': [
-        'https://e6156.surge.sh',  # angular
+        'http://localhost:4200',
+        # 'https://e6156.surge.sh',  # angular
         'http://127.0.0.1:5000/ ',  # flask
     ]
 }
@@ -305,7 +306,9 @@ def login():
             rsp_txt = json.dumps(rsp_data)
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         # TODO: change the URL ('http://localhost:4200')
-        full_rsp.headers["Access-Control-Allow-Origin"] = 'https://e6156.surge.sh'
+        # 'http://localhost:4200'
+        # 'https://e6156.surge.sh'
+        full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
         full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
         full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
         full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
@@ -903,9 +906,11 @@ def get_articles():
     elif request.method == 'POST':
         curr_user = g.user
         content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'], 'date': request.json['date']}
+        print(content)
         try:
             result = UsersRDB.create_post(content)
-            if result == 1:
+            print(result)
+            if result != 0:
                 results = UsersRDB.find_postinfo(curr_user)
             else:
                 results = []

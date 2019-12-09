@@ -142,6 +142,17 @@ class UsersRDB(BaseDataObject):
         return result
 
     @classmethod
+    def create_post(cls, content):
+
+        try:
+            sql, args = data_adaptor.create_insert(table_name="posts", row=content)
+            res, data = data_adaptor.run_q(sql, args)
+        except Exception as e:
+            raise DataException()
+
+        return res
+
+    @classmethod
     def get_comments_of_post(cls, postId):
         try:
             sql = "select * from comments where to_post=%s"
