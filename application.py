@@ -744,7 +744,8 @@ def profile_service_2(email):
                             + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        dynamo.updateAddress(address=received_address, address_id=rsp_data[1]['value'])
+                        print(json.dumps(rsp_data, indent=4))
+                        dynamo.updateAddress(address=received_address, address_id=rsp_data[1][0]['value'])
             else:
                 full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
                 return full_rsp
@@ -917,33 +918,33 @@ def logout():
     full_rsp.headers["Access-Control-Allow-Origin"] = "*"
     return full_rsp
 
-
-@application.route('/articles/<postId>', methods=['GET', 'POST'])
-def get_comments(postId):
-    if request.method == 'GET':
-        try:
-            results = UsersRDB.get_comments_of_post(postId)
-            rsp_status = 200
-        except Exception as e:
-            results = "Not Found"
-            rsp_status = 404
-
-        full_rsp = Response(results, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
-        return full_rsp
-    elif request.method == 'POST':
-        curr_user = g.user
-        content = {'author': curr_user, 'to_post': postId, 'content': request.json['content'],
-                   'date': request.json['date']}
-        try:
-            results = UsersRDB.create_comment(content)
-            rsp_status = 200
-        except Exception as e:
-            results = "Not Found"
-            rsp_status = 404
-        full_rsp = Response(results, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
-        return full_rsp
+#
+# @application.route('/articles/<postId>', methods=['GET', 'POST'])
+# def get_comments(postId):
+#     if request.method == 'GET':
+#         try:
+#             results = UsersRDB.get_comments_of_post(postId)
+#             rsp_status = 200
+#         except Exception as e:
+#             results = "Not Found"
+#             rsp_status = 404
+#
+#         full_rsp = Response(results, status=rsp_status, content_type="application/json")
+#         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+#         return full_rsp
+#     elif request.method == 'POST':
+#         curr_user = g.user
+#         content = {'author': curr_user, 'to_post': postId, 'content': request.json['content'],
+#                    'date': request.json['date']}
+#         try:
+#             results = UsersRDB.create_comment(content)
+#             rsp_status = 200
+#         except Exception as e:
+#             results = "Not Found"
+#             rsp_status = 404
+#         full_rsp = Response(results, status=rsp_status, content_type="application/json")
+#         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
+#         return full_rsp
 
 
 logger.debug("__name__ = " + str(__name__))
