@@ -137,7 +137,8 @@ application.config['SECRET_KEY'] = SECRET_KEY
 def before_decorator():
     rule = request.endpoint
     try:
-        if rule is 'registration' or request.method == 'OPTIONS' or request.headers.get("pass") == 'sL36KjRf5oAc79ifhPJAz1bqi03WQPCC':
+        if rule is 'registration' or request.method == 'OPTIONS' or request.headers.get(
+                "pass") == 'sL36KjRf5oAc79ifhPJAz1bqi03WQPCC':
             pass
         elif rule is 'login':
             pass
@@ -682,39 +683,51 @@ def profile_service_2(email):
             etag = to_etag(get_profile(email))
             if etag == request.headers.get("If-Match"):
                 if "display_name" not in received or not received["display_name"]:
-                    pass 
+                    pass
                 else:
-                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
+                    sql = str(
+                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
-                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("+ "\"" + email + "\"" + ", " + "\"" + received["display_name"] + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
+                            received["display_name"] + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        sql = str("UPDATE profile SET value = " + "\"" + received["display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
+                        sql = str("UPDATE profile SET value = " + "\"" + received[
+                            "display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
                         rsp_data = DataAdaptor.run_q(sql)
-               
+
                 if "home_phone" not in received or not received["home_phone"]:
-                    pass 
+                    pass
                 else:
-                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
+                    sql = str(
+                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
-                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" + received["home_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
+                            received["home_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        sql = "UPDATE profile SET value = " + "\"" + received["home_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
+                        sql = "UPDATE profile SET value = " + "\"" + received[
+                            "home_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
                         rsp_data = DataAdaptor.run_q(sql)
 
                 if "work_phone" not in received or not received["work_phone"]:
-                    pass 
+                    pass
                 else:
-                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
+                    sql = str(
+                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
-                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" + received["work_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
+                            received["work_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        sql = "UPDATE profile SET value = " + "\"" + received["work_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
+                        sql = "UPDATE profile SET value = " + "\"" + received[
+                            "work_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
                         rsp_data = DataAdaptor.run_q(sql)
 
                 if "address_line_1" in received:
@@ -724,14 +737,14 @@ def profile_service_2(email):
                         "city": received['city'],
                         "state": received['state'],
                     }
-                    sql = str("SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
+                    sql = str(
+                        "SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
                         address_id = post_address(received_address)
                         # if received address is invalid:
                         if not address_id:
                             return "Invalid Address"
-                            # return "No candidates. This means the address is not valid. Please go back and submit again."
                         sql = str(
                             "INSERT INTO profile (user, value, type, subtype) VALUES ("
                             + "\"" + email + "\""
@@ -757,7 +770,7 @@ def profile_service_2(email):
         return "Delete Success."
 
 
-@application.route("/api/users/<email>/profile", methods=["GET"])
+@application.route("/api/user/<email>/profile", methods=["GET"])
 def show_profile(email):
     global _user_service
     if request.method == "GET":
@@ -880,7 +893,7 @@ def resource_by_template(primary_key_value=None):
         return full_rsp
 
 
-@application.route('/articles', methods=['GET','POST'])
+@application.route('/articles', methods=['GET', 'POST'])
 def get_articles():
     if request.method == 'GET':
         try:
@@ -902,7 +915,8 @@ def get_articles():
             return full_rsp
     elif request.method == 'POST':
         curr_user = g.user
-        content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'], 'date': request.json['date']}
+        content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'],
+                   'date': request.json['date']}
         try:
             result = UsersRDB.create_post(content)
             if result == 1:
@@ -917,7 +931,6 @@ def get_articles():
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
-
 
 
 @application.route("/logout", methods=['GET', 'PUT', 'POST'])
