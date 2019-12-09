@@ -681,13 +681,15 @@ def profile_service_2(email):
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
         rsp_data = DataAdaptor.run_q(sql)
         if rsp_data[0] == 0:
-            return "Not Found"
-        profile = get_profile(email)
-        etag = to_etag(profile)
-        full_rsp = Response(json.dumps(profile), status=200, content_type="application/json")
-        full_rsp.headers["ETag"] = etag
-        full_rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
-        return full_rsp
+            full_rsp = Response("Not Found", status=404, content_type="application/json")
+            return full_rsp
+        else:
+            profile = get_profile(email)
+            etag = to_etag(profile)
+            full_rsp = Response(json.dumps(profile), status=200, content_type="application/json")
+            full_rsp.headers["ETag"] = etag
+            full_rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
+            return full_rsp
 
     elif request.method == "PUT":
         received = request.json
