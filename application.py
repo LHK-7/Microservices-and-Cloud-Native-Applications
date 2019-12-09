@@ -674,9 +674,78 @@ def profile_service_2(email):
         return full_rsp
 
     elif request.method == "PUT":
-        if True:
-            pass
+        received = request.json
+        if request.headers.get("If-Match") is None:
+            full_rsp = Response("No ETag", status=403, content_type="application/json")
+            return full_rsp
         else:
+            etag = to_etag(get_profile(email))
+            if etag == request.headers.get("If-Match"):
+                if "display_name" not in received or not received["display_name"]:
+                    pass 
+                else:
+                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
+                    rsp_data = DataAdaptor.run_q(sql)
+                    if rsp_data[0] == 0:
+                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("+ "\"" + email + "\"" + ", " + "\"" + display_name + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
+                        rsp_data = DataAdaptor.run_q(sql)
+                    else:
+                        sql = str("UPDATE profile SET value = " + "\"" + received["display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
+                        rsp_data = DataAdaptor.run_q(sql)
+               
+                if "home_phone" not in received or not received["home_phone"]:
+                    pass 
+                else:
+                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
+                    rsp_data = DataAdaptor.run_q(sql)
+                    if rsp_data[0] == 0:
+                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" + home_phone + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
+                        rsp_data = DataAdaptor.run_q(sql)
+                    else:
+                        sql = "UPDATE profile SET value = " + "\"" + phone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
+                        rsp_data = DataAdaptor.run_q(sql)
+
+                if "work_phone" not in received or not received["work_phone"]:
+                    pass 
+                else:
+                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
+                    rsp_data = DataAdaptor.run_q(sql)
+                    if rsp_data[0] == 0:
+                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" + work_phone + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
+                        rsp_data = DataAdaptor.run_q(sql)
+                    else:
+                        sql = "UPDATE profile SET value = " + "\"" + phone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
+                        rsp_data = DataAdaptor.run_q(sql)
+
+                if "address_line_1" in received:
+                    sql = str("SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
+                    rsp_data = DataAdaptor.run_q(sql)
+                    if rsp_data[0] == 0:
+                        received_address = {
+                            "address_line_1": received['address_line_1'],
+                            "address_line_2": received['address_line_2'],
+                            "city": received['city'],
+                            "state": received['state'],
+                        }
+                        address_id = post_address(received_address)
+                        # if received address is invalid:
+                        if not address_id:
+                            return "Invalid Address"
+                            # return "No candidates. This means the address is not valid. Please go back and submit again."
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES ("
+                            + "\"" + email + "\""
+                            + ", "
+                            + "\"" + address_id + "\""
+                            + ", "
+                            + "\"address_id\""
+                            + ", "
+                            + "\"n.a.\""
+                            + ");")
+                        rsp_data = DataAdaptor.run_q(sql)
+                    else:
+                        dynamo.updateAddress(address=, address_id=)
+            else:
                 full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
                 return full_rsp
 
