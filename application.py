@@ -600,7 +600,7 @@ def profile_service_1():
         return "Success"
 
 
-# Etag is implemented here.
+# Etag (GET|PUT) is implemented here.
 @application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
 def profile_service_2(email):
     global _user_service
@@ -686,6 +686,7 @@ def profile_service_2(email):
         etag = to_etag(profile)
         full_rsp = Response(json.dumps(profile), status=200, content_type="application/json")
         full_rsp.headers["ETag"] = etag
+        full_rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
         return full_rsp
 
     elif request.method == "PUT":
