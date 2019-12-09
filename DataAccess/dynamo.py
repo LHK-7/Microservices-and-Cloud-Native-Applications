@@ -99,23 +99,23 @@ def updateAddress(address, address_id):
             }
         },
         ExpressionAttributeNames={
-            "#C": "zipcode",
-            "#D": "state",
+            "#C": "address_line_1",
+            "#D": "address_line_2",
             "#E": "city",
-            "#F": "street"
+            "#F": "state"
         },
         ExpressionAttributeValues={
             ':c': {
-                'S': address["zipcode"],
+                'S': address["address_line_1"],
             },
             ':d': {
-                'S': address["state"],
+                'S': address["address_line_2"],
             },
             ':e': {
                 'S': address["city"],
             },
             ':f': {
-                'S': address["street"],
+                'S': address["state"],
             },
         },
         ReturnValues='ALL_NEW',
@@ -188,3 +188,12 @@ def updateAddress(address, address_id):
 #         "RetryAttempts": 0
 #     }
 # }
+
+
+# new_addr = {
+#     "address_line_1": "new 1",
+#     "address_line_2": "new 2",
+#     "city": "new city",
+#     "state": "new state"
+# }
+# updateAddress(address=new_addr, address_id="995162669610")
