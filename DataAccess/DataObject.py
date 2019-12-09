@@ -156,6 +156,20 @@ class UsersRDB(BaseDataObject):
         return result
 
     @classmethod
+    def get_comments_of_post(cls, postId):
+        try:
+            sql = "select * from comments where to_post=%s"
+            res, data = data_adaptor.run_q(sql=sql, args=(postId), fetch=True)
+            if res == 0:
+                result = "there is no comment"
+            else:
+                result = json.dumps(data, indent=4, sort_keys=True, default=str)
+        except Exception as e:
+            raise DataException()
+
+        return result
+
+    @classmethod
     def create_comment(cls, content):
 
         try:

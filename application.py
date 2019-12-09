@@ -880,25 +880,32 @@ def resource_by_template(primary_key_value=None):
         return full_rsp
 
 
-@application.route('/articles', methods=['GET'])
-def get_articles():
-    try:
-        # TODO need to sync with fronted end should be good now :)
-        curr_user = g.user
-        results = UsersRDB.find_postinfo(curr_user)
+@application.route('/articles/<postId>', methods=['GET','POST'])
+def get_comments(postId):
+    if request.method == 'GET':
+        try:
+            results = UsersRDB.get_comments_of_post(postId)
+            rsp_status = 200
+        except Exception as e:
+            results = "Not Found"
+            rsp_status = 404
 
-        rsp_status = 200
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
-
         return full_rsp
-    except Exception as e:
-        rsp_txt = "Not Found"
-        rsp_status = 404
-        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    elif request.method == 'POST':
+        curr_user = g.user
+        content = {'author':curr_user,'to_post':postId,'content':request.json['content'],'date':request.json['date']}
+        try:
+            results = UsersRDB.create_comment(content)
+            rsp_status = 200
+        except Exception as e:
+            results = "Cannot make the comment. Please try again later."
+            rsp_status = 404
+        full_rsp = Response(results, status=rsp_status, content_type="application/json")
         full_rsp.headers["Access-Control-Allow-Origin"] = "*"
-
         return full_rsp
+
 
 
 @application.route("/logout", methods=['GET', 'PUT', 'POST'])
