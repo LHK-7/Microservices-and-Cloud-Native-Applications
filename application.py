@@ -333,7 +333,7 @@ def user_email(email):
             rsp = user_service.get_by_email(email)
 
             if rsp is not None:
-                etag = to_etag(rsp)
+                # etag = to_etag(rsp)
                 rsp_data = rsp
                 rsp_status = 200
                 rsp_txt = "OK"
@@ -349,12 +349,12 @@ def user_email(email):
             rsp_txt = str(rsp_data)
 
         elif inputs["method"] == 'POST':
-            client_etag = request.headers["ETag"]
+            # client_etag = request.headers["ETag"]
             # res = [id, last_name, first_name, email, password]
             # temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
             temp = request.json
             temp["email"] = email
-            rsp_data = user_service.update_user(temp, client_etag)
+            rsp_data = user_service.update_user(temp)
             rsp_status = 200
             rsp_txt = str(rsp_data)
 
@@ -370,8 +370,8 @@ def user_email(email):
 
         if rsp_data is not None:
             full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
-            if inputs["method"] == "GET":
-                full_rsp.headers["ETag"] = etag
+            # if inputs["method"] == "GET":
+            #     full_rsp.headers["ETag"] = etag
 
         else:
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")

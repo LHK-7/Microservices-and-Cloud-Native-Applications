@@ -89,19 +89,19 @@ class UsersService(BaseService):
         return result
 
     @classmethod
-    def update_user(cls, data, client_etag):
+    def update_user(cls, data):
         v = data["email"]
         res = UsersRDB.get_by_email(v)
         if res is None:
             raise ServiceException(ServiceException.bad_data,
                                    "Email not in database: " + v)
-        server_etag = to_etag(res)
-        if client_etag == server_etag:
-            template = {"email": v}
-            result = UsersRDB.update_user(user_info=data, template=template)
-        else:
-            result = "No action done due to Etag mismatch. This is usually because your info was modified during " \
-                     "your updating. "
+        # server_etag = to_etag(res)
+        # if client_etag == server_etag:
+        template = {"email": v}
+        result = UsersRDB.update_user(user_info=data, template=template)
+        # else:
+        result = "No action done due to Etag mismatch. This is usually because your info was modified during " \
+                 "your updating. "
         return result
 
     @classmethod
