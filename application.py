@@ -440,7 +440,7 @@ def profile_service_1():
             display_name = ""
         else:
             display_name = rsp_data[1][0]['value']
-        print("\nsql data =", json.dumps(rsp_data[1], indent=4))
+        # print("\nsql data =", json.dumps(rsp_data[1], indent=4))
         # The sql response is a list, inside which is an unordered dict.
         # sql data = [
         #     {
