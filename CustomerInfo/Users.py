@@ -4,6 +4,7 @@ from Context import Context
 from DataAccess.DataObject import UsersRDB as UsersRDB
 from Middleware.notification import publish_it
 import hashlib
+import DataAccess.DataAdaptor as DataAdaptor
 
 
 # The base classes would not be IN the project. They would be in a separate included package.
@@ -16,6 +17,12 @@ def to_etag(data):
     m = hashlib.sha256()
     m.update(str(datastring).encode('utf-8'))
     return m.hexdigest()
+
+
+def check_status(email):
+    sql = str("SELECT status FROM users where email = " + "\"" + email + "\"" + ";")
+    rsp_data = DataAdaptor.run_q(sql)
+
 
 
 class ServiceException(Exception):

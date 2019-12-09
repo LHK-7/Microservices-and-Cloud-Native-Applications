@@ -674,36 +674,9 @@ def profile_service_2(email):
         return full_rsp
 
     elif request.method == "PUT":
-        received = request.json
-        if request.headers.get("If-Match") is None:
-            full_rsp = Response("No ETag", status=403, content_type="application/json")
-            return full_rsp
+        if True:
+            pass
         else:
-            etag = to_etag(get_profile(email))
-            if etag == request.headers.get("If-Match"):
-                pass
-                # # Update display_name.
-                # # new_val =
-                # sql = str(
-                #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
-                # rsp_data = DataAdaptor.run_q(sql)
-                #
-                # # Update home_phone
-                # sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
-                # address_id = DataAdaptor.run_q(sql)[1][0]["value"]
-                # dynamo.updateAddress(address, address_id)
-                #
-                # # Update work_phone
-                # sql = str(
-                #     "UPDATE profile SET value = " + "\"" + phone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
-                # rsp_data = DataAdaptor.run_q(sql)
-                #
-                # # Update address.
-                # sql = str(
-                #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
-                # rsp_data = DataAdaptor.run_q(sql)
-                # # print(sql)
-            else:
                 full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
                 return full_rsp
 
