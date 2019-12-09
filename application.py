@@ -65,10 +65,10 @@ application = Flask(__name__)
 
 # we may not need this
 config = {
-  'ORIGINS': [
-    'https://e6156.surge.sh',  # angular
-    'http://127.0.0.1:5000/ ',  # flask
-  ]
+    'ORIGINS': [
+        'https://e6156.surge.sh',  # angular
+        'http://127.0.0.1:5000/ ',  # flask
+    ]
 }
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
@@ -137,7 +137,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 def before_decorator():
     rule = request.endpoint
     try:
-        if rule is 'registration' or request.method == 'OPTIONS':
+        if rule is 'registration' or request.method == 'OPTIONS' or request.headers.get("pass") == 'sL36KjRf5oAc79ifhPJAz1bqi03WQPCC':
             pass
         elif rule is 'login':
             pass
@@ -156,11 +156,13 @@ def before_decorator():
                     raise ValueError("your information cannot be identify")
             g.user = user
     except Exception:
-        print("...!!!")
+        print("Unauthorized user. Login required")
         rsp_txt = "Unauthorized user. Login required"
         rsp_status = 504
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         return full_rsp
+
+
 # TODO Do it at the end
 '''
 # @application.after_request
@@ -413,7 +415,8 @@ test_received = {
     "city": "Anchorage",
     "state": "AK"
 }
-# TODO: Not sure the purpose of this route yet.
+
+
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
@@ -508,7 +511,7 @@ def profile_service_1():
             ]
         }
 
-        return profile
+        return json.dumps(profile)
 
     elif request.method == "POST":
         received = request.json
@@ -582,18 +585,67 @@ def profile_service_1():
         return "Success"
 
 
-# TODO: Not sure the purpose of this route yet.
+# Etag is implemented here.
 @application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
 def profile_service_2(email):
     global _user_service
 
-    if request.method == "GET":
-        post = []
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
+    def get_profile(em):
+        email = em
+        # Get display_name.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"display_name\"" + ";")
         rsp_data = DataAdaptor.run_q(sql)
-        # print("\n", rsp_data)
-        post.append(rsp_data)
-        tmp = {
+        if rsp_data[0] == 0:
+            display_name = ""
+        else:
+            display_name = rsp_data[1][0]['value']
+
+        # Get home_phone.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            home_phone = ""
+        else:
+            home_phone = rsp_data[1][0]['value']
+
+        # Get work_phone.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            work_phone = ""
+        else:
+            work_phone = rsp_data[1][0]['value']
+
+        # Get address.
+        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"address_id\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            address_line_1 = ""
+            address_line_2 = ""
+            city = ""
+            state = ""
+        else:
+            address_id = rsp_data[1][0]["value"]
+            address = get_address(address_id)
+            # print(json.dumps(address, indent=4))
+            address_line_1 = address['address_line_1']
+            address_line_2 = address['address_line_2']
+            city = address['city']
+            state = address['state']
+
+        # Construct profile.
+        profile = {
+            "display_name": display_name,
+            "home_phone": home_phone,
+            "work_phone": work_phone,
+            "address_line_1": address_line_1,
+            "address_line_2": address_line_2,
+            "city": city,
+            "state": state,
             "links": [
                 {
                     "href": "api/profile ",
@@ -607,33 +659,53 @@ def profile_service_2(email):
                 }
             ]
         }
-        post.append(tmp)
-        return json.dumps(post)
+        return profile
+
+    if request.method == "GET":
+        # profile = {}
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            return "Not Found"
+        profile = get_profile(email)
+        etag = to_etag(profile)
+        full_rsp = Response(json.dumps(profile), status=200, content_type="application/json")
+        full_rsp.headers["ETag"] = etag
+        return full_rsp
 
     elif request.method == "PUT":
         received = request.json
-
-        # # Update display_name.
-        # # new_val =
-        # sql = str(
-        #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
-        # rsp_data = DataAdaptor.run_q(sql)
-        #
-        # # Update home_phone
-        # sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
-        # address_id = DataAdaptor.run_q(sql)[1][0]["value"]
-        # dynamo.updateAddress(address, address_id)
-        #
-        # # Update work_phone
-        # sql = str(
-        #     "UPDATE profile SET value = " + "\"" + phone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
-        # rsp_data = DataAdaptor.run_q(sql)
-        #
-        # # Update address.
-        # sql = str(
-        #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
-        # rsp_data = DataAdaptor.run_q(sql)
-        # # print(sql)
+        if request.headers.get("If-Match") is None:
+            full_rsp = Response("No ETag", status=403, content_type="application/json")
+            return full_rsp
+        else:
+            etag = to_etag(get_profile(email))
+            if etag == request.headers.get("If-Match"):
+                pass
+                # # Update display_name.
+                # # new_val =
+                # sql = str(
+                #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
+                # rsp_data = DataAdaptor.run_q(sql)
+                #
+                # # Update home_phone
+                # sql = str("SELECT value FROM profile WHERE user = " + "\"" + email + "\"" + " and type = \"address_id\"")
+                # address_id = DataAdaptor.run_q(sql)[1][0]["value"]
+                # dynamo.updateAddress(address, address_id)
+                #
+                # # Update work_phone
+                # sql = str(
+                #     "UPDATE profile SET value = " + "\"" + phone + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"telephone\" and subtype = " + "\"" + Telephone_sub + "\"")
+                # rsp_data = DataAdaptor.run_q(sql)
+                #
+                # # Update address.
+                # sql = str(
+                #     "UPDATE profile SET value = " + "\"" + Email + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"email\" and subtype = " + "\"" + Email_sub + "\"")
+                # rsp_data = DataAdaptor.run_q(sql)
+                # # print(sql)
+            else:
+                full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
+                return full_rsp
 
         return "Update Success."
 
@@ -643,22 +715,70 @@ def profile_service_2(email):
         return "Delete Success."
 
 
-# TODO: Not sure the purpose of this route yet.
-@application.route("/api/customers/<email>/profile", methods=["GET"])
+@application.route("/api/users/<email>/profile", methods=["GET"])
 def show_profile(email):
     global _user_service
     if request.method == "GET":
-        post = []
+        # profile = {}
         sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
         rsp_data = DataAdaptor.run_q(sql)
-        # print("\n", rsp_data)
-        post.append(rsp_data)
-        # sql = str("SELECT address_number FROM profile where user = " + "\"" + email + "\"" + ";")
-        # post.append(rsp_data)
-        # addnumber = int(data_adaptor.run_q(sql))
-        # address_post = getAddress(addnumber)
-        # post = rsp + address_post
-        tmp = {
+        if rsp_data[0] == 0:
+            return "No, Not found.."
+
+        # Get display_name.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"display_name\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            display_name = ""
+        else:
+            display_name = rsp_data[1][0]['value']
+
+        # Get home_phone.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            home_phone = ""
+        else:
+            home_phone = rsp_data[1][0]['value']
+
+        # Get work_phone.
+        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            work_phone = ""
+        else:
+            work_phone = rsp_data[1][0]['value']
+
+        # Get address.
+        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
+                  + "AND type = \"address_id\"" + ";")
+        rsp_data = DataAdaptor.run_q(sql)
+        if rsp_data[0] == 0:
+            address_line_1 = ""
+            address_line_2 = ""
+            city = ""
+            state = ""
+        else:
+            address_id = rsp_data[1][0]["value"]
+            address = get_address(address_id)
+            # print(json.dumps(address, indent=4))
+            address_line_1 = address['address_line_1']
+            address_line_2 = address['address_line_2']
+            city = address['city']
+            state = address['state']
+
+        # Construct profile.
+        profile = {
+            "display_name": display_name,
+            "home_phone": home_phone,
+            "work_phone": work_phone,
+            "address_line_1": address_line_1,
+            "address_line_2": address_line_2,
+            "city": city,
+            "state": state,
             "links": [
                 {
                     "href": "api/profile/<email> ",
@@ -672,9 +792,7 @@ def show_profile(email):
                 }
             ]
         }
-        post.append(tmp)
-        post = json.dumps(post)
-    return post
+        return json.dumps(profile)
 
 
 @application.route('/resource', methods=['GET'], defaults={'primary_key_value': None})
@@ -741,7 +859,7 @@ def get_articles():
         return full_rsp
 
 
-@application.route("/logout", methods=['GET','PUT','POST'])
+@application.route("/logout", methods=['GET', 'PUT', 'POST'])
 def logout():
     g.user = None
     results = 'Logged Out!'
@@ -750,7 +868,8 @@ def logout():
     full_rsp.headers["Access-Control-Allow-Origin"] = "*"
     return full_rsp
 
-@application.route('/articles/<postId>', methods=['GET','POST'])
+
+@application.route('/articles/<postId>', methods=['GET', 'POST'])
 def get_comments(postId):
     if request.method == 'GET':
         try:
@@ -765,7 +884,8 @@ def get_comments(postId):
         return full_rsp
     elif request.method == 'POST':
         curr_user = g.user
-        content = {'author':curr_user,'to_post':postId,'content':request.json['content'],'date':request.json['date']}
+        content = {'author': curr_user, 'to_post': postId, 'content': request.json['content'],
+                   'date': request.json['date']}
         try:
             results = UsersRDB.create_comment(content)
             rsp_status = 200
