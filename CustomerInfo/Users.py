@@ -3,20 +3,10 @@ from abc import ABC, abstractmethod
 from Context import Context
 from DataAccess.DataObject import UsersRDB as UsersRDB
 from Middleware.notification import publish_it
-import hashlib
-import DataAccess.DataAdaptor as DataAdaptor
 
 
 # The base classes would not be IN the project. They would be in a separate included package.
 # They would also do some things.
-
-def to_etag(data):
-    datastring = ""
-    datastring = datastring + data["display_name"] + data["home_phone"] + data["work_phone"] + data["address_line_1"] + \
-                 data["address_line_2"] + data["city"] + data["state"]
-    m = hashlib.sha256()
-    m.update(str(datastring).encode('utf-8'))
-    return m.hexdigest()
 
 
 class ServiceException(Exception):

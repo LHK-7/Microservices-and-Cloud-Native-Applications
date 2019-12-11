@@ -23,7 +23,8 @@ import jwt
 import DataAccess.DataAdaptor as DataAdaptor
 import DataAccess.dynamo as dynamo
 from Context.Context import Context
-from CustomerInfo.Users import UsersService as UserService, to_etag
+from CustomerInfo.Users import UsersService as UserService
+from Middleware.etag import to_etag
 from Middleware.authentication import authentication
 from Middleware.authorization import authorization
 from DataAccess.DataObject import UsersRDB as UsersRDB
@@ -133,6 +134,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #
 #     return decorated_function
 
+# TODO: this should be moved to middleware. Check prof's code.
 # TODO:need to sync with front end, right now should be Good :)
 @application.before_request
 def before_decorator():
