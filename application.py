@@ -214,7 +214,7 @@ def log_response(method, status, data, txt):
 
 
 # Registration service.
-@application.route("/api/user/registration", methods=["POST"])
+@application.route("/api/user/registration", endpoint="registration", methods=["POST"])
 def user_register():
     global _user_service
 
