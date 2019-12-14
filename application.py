@@ -68,7 +68,7 @@ application = Flask(__name__)
 config = {
     'ORIGINS': [
         'http://localhost:4200',
-        # 'https://e6156.surge.sh',  # angular
+        'https://e6156.surge.sh',  # angular
         'http://127.0.0.1:5000/ ',  # flask
     ]
 }
@@ -135,7 +135,6 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #     return decorated_function
 
 # TODO: this should be moved to middleware. Check prof's code.
-# TODO:need to sync with front end, right now should be Good :)
 @application.before_request
 def before_decorator():
     rule = request.endpoint
@@ -165,15 +164,6 @@ def before_decorator():
         rsp_status = 504
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         return full_rsp
-
-
-# TODO Do it at the end
-'''
-# @application.after_request
-# def after_decorator(rsp):
-#     print("... In after decorator ...")
-#     return rsp
-'''
 
 
 # 1. Extract the input information from the requests object.
@@ -223,54 +213,23 @@ def log_response(method, status, data, txt):
     logger.debug(str(datetime.now()) + ": \n" + json.dumps(msg, indent=2))
 
 
-# This function performs a basic health check. We will flesh this out.
-# @application.route("/health", methods=["GET"])
-# def health_check():
-#     rsp_data = {"status": "healthy", "time": str(datetime.now())}
-#     rsp_str = json.dumps(rsp_data)
-#     rsp = Response(rsp_str, status=200, content_type="application/json")
-#     return rsp
-
-
-# Demo. Return the received inputs.
-# @application.route("/demo/<parameter>", methods=["GET", "POST"])
-# def demo(parameter):
-#     inputs = log_and_extract_input(demo, {"parameter": parameter})
-#
-#     msg = {
-#         "/demo received the following inputs": inputs
-#     }
-#
-#     rsp = Response(json.dumps(msg), status=200, content_type="application/json")
-#     return rsp
-
-
-# # REDIRECT
-# @application.route("/api/redirect", methods=["GET"])
-# def redir():
-#     return redirect("http://www.example.com", code=302)
-
-@application.route("/api/user/registration", methods=["GET", "POST"])
+# Registration service.
+@application.route("/api/user/registration", methods=["POST"])
 def user_register():
     global _user_service
-    if request.method == 'POST':
-        last_name = request.get_json().get("last_name")
-        first_name = request.get_json().get("first_name")
-        email = request.get_json().get("email")
-        password = request.get_json().get("password")
-        id = str(uuid.uuid4())
 
-        res = [id, last_name, first_name, email, password]
-        temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
+    last_name = request.get_json().get("last_name")
+    first_name = request.get_json().get("first_name")
+    email = request.get_json().get("email")
+    password = request.get_json().get("password")
+    id = str(uuid.uuid4())
 
-        user_service = _get_user_service()
-        user_service.create_user(temp)
-        rsp_txt = json.dumps("user created")
-        rsp_status = 200
-        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-        return full_rsp
+    res = [id, last_name, first_name, email, password]
+    temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
 
-    rsp_txt = json.dumps("User is not created due to an unknown reason.")
+    user_service = _get_user_service()
+    user_service.create_user(temp)
+    rsp_txt = json.dumps("user created")
     rsp_status = 200
     full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
     return full_rsp
@@ -278,55 +237,52 @@ def user_register():
 
 @application.route("/api/user/login", endpoint="login", methods=["POST"])
 def login():
-    error = None
-
-    if request.method == 'POST':
-        user = request.json['username']
-        password = request.json['password']
-        tmp = {user: password}
-        res = authentication.validate(tmp)
-        if res:
-            encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
-                'utf-8')
-            rsp_data = {
-                "result": res,
-                "Token": encoded_password
-            }
-            sql = str("SELECT status FROM users where email = " + "\"" + user + "\"" + ";")
-            data = DataAdaptor.run_q(sql)
-            # print(json.dumps(data, indent=4))
-            status = data[1][0]['status']
-            if status == 'ACTIVE':
-                # print(type(rsp_data), rsp_data)
-                rsp_status = 200
-                rsp_txt = json.dumps(rsp_data)
-                # print(type(json.dumps(rsp_data)))
-                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-                full_rsp.headers["Token"] = encoded_password
-            else:
-                # print(type(rsp_data), rsp_data)
-                rsp_status = 403
-                rsp_txt = "User not Activated."
-                # print(type(json.dumps(rsp_data)))
-                full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-
-        else:
-            error = 'Invalid Credentials. Please try again.'
-            rsp_data = {
-                "result": res,
-                "error": error
-            }
-            rsp_status = 504
+    user = request.json['username']
+    password = request.json['password']
+    tmp = {user: password}
+    res = authentication.validate(tmp)
+    if res:
+        encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
+            'utf-8')
+        rsp_data = {
+            "result": res,
+            "Token": encoded_password
+        }
+        sql = str("SELECT status FROM users where email = " + "\"" + user + "\"" + ";")
+        data = DataAdaptor.run_q(sql)
+        # print(json.dumps(data, indent=4))
+        status = data[1][0]['status']
+        if status == 'ACTIVE':
+            # print(type(rsp_data), rsp_data)
+            rsp_status = 200
             rsp_txt = json.dumps(rsp_data)
+            # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-        # TODO: change the URL ('http://localhost:4200')
-        # 'http://localhost:4200'
-        # 'https://e6156.surge.sh'
-        full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
-        full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-        full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-        full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
+            full_rsp.headers["Token"] = encoded_password
+        else:
+            # print(type(rsp_data), rsp_data)
+            rsp_status = 403
+            rsp_txt = "User not Activated."
+            # print(type(json.dumps(rsp_data)))
+            full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+
+    else:
+        error = 'Invalid Credentials. Please try again.'
+        rsp_data = {
+            "result": res,
+            "error": error
+        }
+        rsp_status = 504
+        rsp_txt = json.dumps(rsp_data)
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    # TODO: change the URL ('http://localhost:4200')
+    # 'http://localhost:4200'
+    # 'https://e6156.surge.sh'
+    full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
+    full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
+    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
+    full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
 
     return full_rsp
 
@@ -770,8 +726,6 @@ def profile_service_2(email):
             else:
                 full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
                 return full_rsp
-
-
 
     elif request.method == "DELETE":
         sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
