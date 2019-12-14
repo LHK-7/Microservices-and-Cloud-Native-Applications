@@ -660,37 +660,49 @@ def profile_service_2(email):
                 if "display_name" not in received or not received["display_name"]:
                     pass
                 else:
-                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
+                    sql = str(
+                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
-                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("+ "\"" + email + "\"" + ", " + "\"" + received["display_name"] + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
+                            received["display_name"] + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        sql = str("UPDATE profile SET value = " + "\"" + received["display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
+                        sql = str("UPDATE profile SET value = " + "\"" + received[
+                            "display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
                         rsp_data = DataAdaptor.run_q(sql)
-               
+
                 if "home_phone" not in received or not received["home_phone"]:
-                    pass 
+                    pass
                 else:
-                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
+                    sql = str(
+                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
-                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" + received["home_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
+                            received["home_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        sql = "UPDATE profile SET value = " + "\"" + received["home_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
+                        sql = "UPDATE profile SET value = " + "\"" + received[
+                            "home_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
                         rsp_data = DataAdaptor.run_q(sql)
 
                 if "work_phone" not in received or not received["work_phone"]:
-                    pass 
+                    pass
                 else:
-                    sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
+                    sql = str(
+                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
-                        sql = str("INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" + received["work_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
+                        sql = str(
+                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
+                            received["work_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
-                        sql = "UPDATE profile SET value = " + "\"" + received["work_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
+                        sql = "UPDATE profile SET value = " + "\"" + received[
+                            "work_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
                         rsp_data = DataAdaptor.run_q(sql)
 
                 if "address_line_1" in received:
@@ -700,7 +712,8 @@ def profile_service_2(email):
                         "city": received['city'],
                         "state": received['state'],
                     }
-                    sql = str("SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
+                    sql = str(
+                        "SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
                     if rsp_data[0] == 0:
                         address_id = post_address(received_address)
@@ -878,7 +891,8 @@ def get_articles():
             return full_rsp
     elif request.method == 'POST':
         curr_user = g.user
-        content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'], 'date': request.json['date']}
+        content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'],
+                   'date': request.json['date']}
         print(content)
         try:
             result = UsersRDB.create_post(content)
