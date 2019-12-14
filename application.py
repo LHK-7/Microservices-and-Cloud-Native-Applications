@@ -764,11 +764,14 @@ def profile_service_2(email):
                         rsp_data = DataAdaptor.run_q(sql)
                     else:
                         dynamo.updateAddress(address=received_address, address_id=rsp_data[1][0]['value'])
+
+                full_rsp = Response("Update Success.", status=200, content_type="application/json")
+                return ""
             else:
                 full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
                 return full_rsp
 
-        return "Update Success."
+
 
     elif request.method == "DELETE":
         sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
