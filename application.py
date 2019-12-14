@@ -766,7 +766,7 @@ def profile_service_2(email):
                         dynamo.updateAddress(address=received_address, address_id=rsp_data[1][0]['value'])
 
                 full_rsp = Response("Update Success.", status=200, content_type="application/json")
-                return ""
+                return full_rsp
             else:
                 full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
                 return full_rsp
