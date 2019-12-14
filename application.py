@@ -225,7 +225,7 @@ def user_register():
     id = str(uuid.uuid4())
 
     res = [id, last_name, first_name, email, password]
-    temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4]}
+    temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4], 'status': "PENDING"}
 
     user_service = _get_user_service()
     user_service.create_user(temp)
