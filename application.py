@@ -396,7 +396,7 @@ def profile_service_1():
     global _user_service
 
     # get email from query string
-    email = request.args.get("email")
+    email = g.user
 
     if request.method == "GET":
         # profile = {}
@@ -488,13 +488,21 @@ def profile_service_1():
 
     elif request.method == "POST":
         received = request.json
-
+        full_address = received.get('address_line_1').split(',')
+        street = full_address[0]
+        city_state = full_address[1].split(" ")
+        city = " ".join(city_state[1:-1])
+        state = city_state[-1]
+        if received.get('address_line_2') is None:
+            addrs2 = ' '
+        else:
+            addrs2 = received.get('address_line_2')
         # Handle address.
         received_address = {
-            "address_line_1": received['address_line_1'],
-            "address_line_2": received['address_line_2'],
-            "city": received['city'],
-            "state": received['state'],
+            "address_line_1": street,
+            "address_line_2": addrs2,
+            "city": city,
+            "state": state,
         }
         address_id = post_address(received_address)
         # if received address is invalid:
@@ -511,13 +519,15 @@ def profile_service_1():
             + ", "
             + "\"n.a.\""
             + ");")
+
         rsp_data = DataAdaptor.run_q(sql)
+        print("rsp_data", rsp_data)
 
         # Handle home phone.
         home_phone = received['home_phone']
         if home_phone:
             sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
+                      + "\"" + received.get['email'] + "\""
                       + ", "
                       + "\"" + home_phone + "\""
                       + ", "
@@ -526,12 +536,13 @@ def profile_service_1():
                       + "\"home\""
                       + ");")
             rsp_data = DataAdaptor.run_q(sql)
+            print("rsp_data",rsp_data)
 
         # Handle work phone.
         work_phone = received['work_phone']
         if work_phone:
             sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
+                      + "\"" + received.get['email'] + "\""
                       + ", "
                       + "\"" + work_phone + "\""
                       + ", "
@@ -540,12 +551,13 @@ def profile_service_1():
                       + "\"work\""
                       + ");")
             rsp_data = DataAdaptor.run_q(sql)
+            print("rsp_data",rsp_data)
 
         # Handle display_name.
         display_name = received['display_name']
         if display_name:
             sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
+                      + "\"" + received.get['email'] + "\""
                       + ", "
                       + "\"" + display_name + "\""
                       + ", "
@@ -554,7 +566,7 @@ def profile_service_1():
                       + "\"n.a.\""
                       + ");")
             rsp_data = DataAdaptor.run_q(sql)
-
+            print("rsp_data",rsp_data)
         return "Success"
 
 
@@ -651,11 +663,14 @@ def profile_service_2(email):
 
     elif request.method == "PUT":
         received = request.json
+
+        print(received)
         if request.headers.get("If-Match") is None:
             full_rsp = Response("No ETag", status=403, content_type="application/json")
             return full_rsp
         else:
             etag = to_etag(get_profile(email))
+            print(etag)
             if etag == request.headers.get("If-Match"):
                 if "display_name" not in received or not received["display_name"]:
                     pass
@@ -706,11 +721,21 @@ def profile_service_2(email):
                         rsp_data = DataAdaptor.run_q(sql)
 
                 if "address_line_1" in received:
+                    full_address = received.get('address_line_1').split(',')
+                    street = full_address[0]
+                    city_state = full_address[1].split(" ")
+                    city = " ".join(city_state[1:-1])
+                    state = city_state[-1]
+                    if received.get('address_line_2') is None:
+                        addrs2 = ' '
+                    else:
+                        addrs2 = received.get('address_line_2')
+
                     received_address = {
-                        "address_line_1": received['address_line_1'],
-                        "address_line_2": received['address_line_2'],
-                        "city": received['city'],
-                        "state": received['state'],
+                        "address_line_1": street,
+                        "address_line_2": addrs2,
+                        "city": city,
+                        "state": state,
                     }
                     sql = str(
                         "SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
