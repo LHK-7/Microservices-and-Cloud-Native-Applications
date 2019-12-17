@@ -489,13 +489,31 @@ def profile_service_1():
     elif request.method == "POST":
         received = request.json
 
+        # Parse the single address. This requires the user type address in a certain format.
+        full_address = received.get('address_line_1').split(',')
+        street = full_address[0]
+        city_state = full_address[1].split(" ")
+        city = " ".join(city_state[1:-1])
+        state = city_state[-1]
+        if received.get('address_line_2') is None:
+            addrs2 = ' '
+        else:
+            addrs2 = received.get('address_line_2')
+
         # Handle address.
+        # received_address = {
+        #     "address_line_1": received['address_line_1'],
+        #     "address_line_2": received['address_line_2'],
+        #     "city": received['city'],
+        #     "state": received['state'],
+        # }
         received_address = {
-            "address_line_1": received['address_line_1'],
-            "address_line_2": received['address_line_2'],
-            "city": received['city'],
-            "state": received['state'],
+            "address_line_1": street,
+            "address_line_2": addrs2,
+            "city": city,
+            "state": state,
         }
+
         address_id = post_address(received_address)
         # if received address is invalid:
         if not address_id:
@@ -706,12 +724,32 @@ def profile_service_2(email):
                         rsp_data = DataAdaptor.run_q(sql)
 
                 if "address_line_1" in received:
+
+                    # Parse the single address. This requires the user type address in a certain format.
+                    full_address = received.get('address_line_1').split(',')
+                    street = full_address[0]
+                    city_state = full_address[1].split(" ")
+                    city = " ".join(city_state[1:-1])
+                    state = city_state[-1]
+                    if received.get('address_line_2') is None:
+                        addrs2 = ' '
+                    else:
+                        addrs2 = received.get('address_line_2')
+
+                    # Handle address.
+                    # received_address = {
+                    #     "address_line_1": received['address_line_1'],
+                    #     "address_line_2": received['address_line_2'],
+                    #     "city": received['city'],
+                    #     "state": received['state'],
+                    # }
                     received_address = {
-                        "address_line_1": received['address_line_1'],
-                        "address_line_2": received['address_line_2'],
-                        "city": received['city'],
-                        "state": received['state'],
+                        "address_line_1": street,
+                        "address_line_2": addrs2,
+                        "city": city,
+                        "state": state,
                     }
+
                     sql = str(
                         "SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
                     rsp_data = DataAdaptor.run_q(sql)
