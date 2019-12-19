@@ -70,10 +70,11 @@ config = {
         'http://localhost:4200',
         'http://127.0.0.1:5000/ ',  # flask
         'https://e6156.surge.sh',  # angular
-        'https://e6156-yeah.s3-website.us-east-2.amazonaws.com' # s3
+        'http://e6156-yeah.s3-website.us-east-2.amazonaws.com', # s3
+        'https://d32e0zjclv95xl.cloudfront.net' # cloudfront
     ]
 }
-allowed_url = 'http://localhost:4200'
+allowed_url = 'https://d32e0zjclv95xl.cloudfront.net'
 
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
@@ -169,6 +170,16 @@ def before_decorator():
         return full_rsp
 
 
+@application.after_request
+def after_request_func(response):
+    response.headers["Access-Control-Allow-Origin"] = allowed_url
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = 'true'
+    response.headers["Access-Control-Expose-Headers"] = "Token"
+    return response
+
+
 # 1. Extract the input information from the requests object.
 # 2. Log the information
 # 3. Return extracted information.
@@ -241,6 +252,7 @@ def user_register():
         rsp_txt = json.dumps(exp)
 
     full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+
     return full_rsp
 
 
@@ -284,12 +296,6 @@ def login():
         rsp_status = 504
         rsp_txt = json.dumps(rsp_data)
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-
-    full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
-    full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-    full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
 
     return full_rsp
 
@@ -894,14 +900,12 @@ def resource_by_template(primary_key_value=None):
                 rsp_txt = str(rsp_data)
 
                 full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-                full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
                 return full_rsp
             else:
                 rsp_status = 404
                 rsp_txt = "Not Found"
                 full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-                full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
                 return full_rsp
     except Exception as e:
@@ -909,7 +913,6 @@ def resource_by_template(primary_key_value=None):
         rsp_txt = "Internal Error"
         rsp_status = 504
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
         return full_rsp
 
@@ -924,14 +927,12 @@ def get_articles():
 
             rsp_status = 200
             full_rsp = Response(results, status=rsp_status, content_type="application/json")
-            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
             return full_rsp
         except Exception as e:
             rsp_txt = "Not Found"
             rsp_status = 404
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-            full_rsp.headers["Access-Control-Allow-Origin"] = "*"
 
             return full_rsp
     elif request.method == 'POST':
@@ -952,7 +953,6 @@ def get_articles():
             rsp_status = 404
 
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
 
 
@@ -962,7 +962,6 @@ def logout():
     results = 'Logged Out!'
     rsp_status = 200
     full_rsp = Response(results, status=rsp_status, content_type="application/json")
-    full_rsp.headers["Access-Control-Allow-Origin"] = "*"
     return full_rsp
 
 
@@ -977,7 +976,6 @@ def get_comments(postId):
             rsp_status = 404
 
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
 
     elif request.method == 'POST':
@@ -991,7 +989,6 @@ def get_comments(postId):
             results = "Not Found"
             rsp_status = 404
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = "*"
         return full_rsp
 
 
