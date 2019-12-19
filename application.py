@@ -68,10 +68,13 @@ application = Flask(__name__)
 config = {
     'ORIGINS': [
         'http://localhost:4200',
-        'https://e6156.surge.sh',  # angular
         'http://127.0.0.1:5000/ ',  # flask
+        'https://e6156.surge.sh',  # angular
+        'https://e6156-yeah.s3-website.us-east-2.amazonaws.com' # s3
     ]
 }
+allowed_url = 'http://localhost:4200'
+
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
 
@@ -218,19 +221,25 @@ def log_response(method, status, data, txt):
 def user_register():
     global _user_service
 
-    last_name = request.get_json().get("last_name")
-    first_name = request.get_json().get("first_name")
-    email = request.get_json().get("email")
-    password = request.get_json().get("password")
-    id = str(uuid.uuid4())
+    param = request.get_json()
+    rsp_status = 400  # bad request
 
-    res = [id, last_name, first_name, email, password]
-    temp = {'id': res[0], 'last_name': res[1], 'first_name': res[2], 'email': res[3], 'password': res[4], 'status': "PENDING"}
+    try:
+        temp = {
+            'id': str(uuid.uuid4()),
+            'last_name': param['last_name'],
+            'first_name': param['first_name'],
+            'email': param['email'],
+            'password': param['password']
+        }
 
-    user_service = _get_user_service()
-    user_service.create_user(temp)
-    rsp_txt = json.dumps("user created")
-    rsp_status = 200
+        user_service = _get_user_service()
+        user_service.create_user(temp)
+        rsp_txt = json.dumps("user created")
+        rsp_status = 200
+    except Exception as exp:
+        rsp_txt = json.dumps(exp)
+
     full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
     return full_rsp
 
@@ -275,10 +284,8 @@ def login():
         rsp_status = 504
         rsp_txt = json.dumps(rsp_data)
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
-    # TODO: change the URL ('http://localhost:4200')
-    # 'http://localhost:4200'
-    # 'https://e6156.surge.sh'
-    full_rsp.headers["Access-Control-Allow-Origin"] = 'http://localhost:4200'
+
+    full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
     full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
     full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
     full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
