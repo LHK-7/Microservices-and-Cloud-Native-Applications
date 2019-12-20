@@ -79,7 +79,7 @@ allowed_url = 'https://d32e0zjclv95xl.cloudfront.net'
 
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}},
-     headers='Content-Type, Authorization, Token', supports_credentials=True)
+     headers='Content-Type, X-Api-Key, Token', supports_credentials=True)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -149,8 +149,8 @@ def before_decorator():
         else:
             token = request.headers.get("Token")
             fblogin = False
-            if request.headers.has_key("Authorization"):
-                fblogin = json.loads(request.headers["Authorization"])
+            if request.headers.has_key("X-Api-Key"):
+                fblogin = json.loads(request.headers["X-Api-Key"])
             if fblogin:
                 user = token
             else:
