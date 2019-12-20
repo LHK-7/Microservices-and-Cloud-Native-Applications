@@ -365,7 +365,8 @@ def user_email(email):
 
 
 @application.route("/addresses", methods=["POST", "PUT"])
-def post_address(input_address):
+def post_address():
+    input_address = log_and_extract_input()['body']
     validated = validate_address(input_address)
     if 'delivery_point_barcode' not in validated:
         # if address is invalid, return False
