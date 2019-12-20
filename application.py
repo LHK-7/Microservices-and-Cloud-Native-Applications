@@ -144,10 +144,8 @@ application.config['SECRET_KEY'] = SECRET_KEY
 def before_decorator():
     rule = request.endpoint
     try:
-        if rule is 'registration' or request.method == 'OPTIONS' or request.headers.get(
+        if rule is 'registration' or rule is 'login' or request.method == 'OPTIONS' or request.headers.get(
                 "pass") == 'sL36KjRf5oAc79ifhPJAz1bqi03WQPCC':
-            pass
-        elif rule is 'login':
             pass
         else:
             token = request.headers.get("Token")
@@ -286,7 +284,7 @@ def login():
     full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
     full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
     full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
+    full_rsp.headers["Access-Control-Allow-Credentials"] = "true"
     full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
     return full_rsp
 
