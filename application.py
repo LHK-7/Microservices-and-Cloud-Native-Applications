@@ -170,16 +170,6 @@ def before_decorator():
         return full_rsp
 
 
-@application.after_request
-def after_request_func(response):
-    response.headers["Access-Control-Allow-Origin"] = allowed_url
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = 'true'
-    response.headers["Access-Control-Expose-Headers"] = "Token"
-    return response
-
-
 # 1. Extract the input information from the requests object.
 # 2. Log the information
 # 3. Return extracted information.
@@ -297,6 +287,11 @@ def login():
         rsp_txt = json.dumps(rsp_data)
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
+    full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
+    full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
+    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
+    full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
     return full_rsp
 
 
@@ -585,6 +580,12 @@ def profile_service_1():
                       + "\"n.a.\""
                       + ");")
             rsp_data = DataAdaptor.run_q(sql)
+
+        # full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
+        # full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        # full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
+        # full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
+        # full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
 
         return "Success"
 
