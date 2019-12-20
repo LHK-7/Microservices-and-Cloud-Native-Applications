@@ -6,26 +6,20 @@ from Context.Context import Context
 
 logger = logging.getLogger()
 
-_default_connection = None
-
 
 def _get_default_connection():
-    global _default_connection
+    ctx = Context.get_default_context()
+    c_info = ctx.get_context("db_connect_info")
 
-    if _default_connection is None:
-        ctx = Context.get_default_context()
-        c_info = ctx.get_context("db_connect_info")
-
-        _default_connection = pymysql.connect(
-            host=c_info['host'],
-            user=c_info['user'],
-            password=c_info['password'],
-            port=c_info['port'],
-            db=c_info['db'],
-            charset=c_info['charset'],
-            cursorclass=pymysql.cursors.DictCursor
-        )
-
+    _default_connection = pymysql.connect(
+        host=c_info['host'],
+        user=c_info['user'],
+        password=c_info['password'],
+        port=c_info['port'],
+        db=c_info['db'],
+        charset=c_info['charset'],
+        cursorclass=pymysql.cursors.DictCursor
+    )
     return _default_connection
 
 

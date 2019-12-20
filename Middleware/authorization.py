@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 import jwt
 
-from Middleware.authentication import authentication
+from Middleware.authentication import Authentication
 
 
 class authorization(object):
@@ -23,7 +23,7 @@ class authorization(object):
         # print()
         tmp = {user: password}
         # print(tmp)
-        res = authentication.validate(tmp)
+        res = Authentication.validate(tmp)
 
         if method == "GET":
             return True

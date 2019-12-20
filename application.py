@@ -25,7 +25,7 @@ import DataAccess.dynamo as dynamo
 from Context.Context import Context
 from CustomerInfo.Users import UsersService as UserService
 from Middleware.etag import to_etag
-from Middleware.authentication import authentication
+from Middleware.authentication import Authentication
 from Middleware.authorization import authorization
 from DataAccess.DataObject import UsersRDB as UsersRDB
 from CustomerInfo.Address import validate_address
@@ -252,8 +252,7 @@ def user_register():
 def login():
     user = request.json['username']
     password = request.json['password']
-    tmp = {user: password}
-    res = authentication.validate(tmp)
+    res = Authentication.validate({ user: password })
     if res:
         encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
             'utf-8')
