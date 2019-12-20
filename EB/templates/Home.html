@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello World</title>
+</head>
+<body>
+    <p>Hello World</p>
+</body>
+{% block script %}
+    <script>
+        let encodedData = '{{ encoded_password }}';
+        sessionStorage.setItem('password', encodedData);
+        console.log(sessionStorage.getItem('password'));
+        const url = "http://127.0.0.1:5000/api/user/home";
+        var myHeaders = new Headers();
+
+        (async () => {
+          const rawResponse = await fetch(url, {
+            method: 'POST',
+            credentials: "include",
+            cache: "no-cache",
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({password: sessionStorage.getItem('password')}),
+          });
+          const content = await rawResponse.json();
+
+          console.log(content);
+        })();
+
+    </script>
+{% endblock %}
+</html>

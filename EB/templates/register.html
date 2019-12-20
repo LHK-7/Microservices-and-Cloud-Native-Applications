@@ -1,6 +1,3 @@
-{% for message in get_flashed_messages() %}
-    <div class="flash">{{ message }}</div>
-  {% endfor %}
 {% block body %}
 <h1>Register</h1>
 <form method="post" action="">
@@ -22,10 +19,6 @@
         <div class="form-group">
                      <label>password</label>
         {{form.password(class="form-control")}}
-    </div>
-    <div class="form-group">
-                     <label>password2</label>
-        {{form.password2(class="form-control")}}
     </div>
     <p><input type="submit" class="btn btn-primary" value="Submit"></p>
 </form>

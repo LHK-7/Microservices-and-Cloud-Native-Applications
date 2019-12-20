@@ -4,3 +4,5 @@ boto3==1.9.237
 PyJWT==1.7.1
 pymysql==0.9.3
 WTForms==2.2.1
+smartystreets_python_sdk
+flask_cors
