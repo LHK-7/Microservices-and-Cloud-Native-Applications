@@ -75,6 +75,7 @@ config = {
     ]
 }
 allowed_url = 'https://d32e0zjclv95xl.cloudfront.net'
+# allowed_url = 'http://localhost:4200' # TODO: change this to cloudfront
 
 # Enable CORS
 CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
@@ -149,10 +150,12 @@ def before_decorator():
         elif rule is 'login':
             pass
         else:
-            token = request.headers["Token"]
-            token = token.split(',')
-            if len(token) == 2 and token[1] == '000000':
-                user = token[0]
+            token = request.headers.get("Token")
+            fblogin = None
+            if request.headers.get("FBlogin"):
+                fblogin = json.loads(request.headers["FBlogin"])
+            if fblogin:
+                user = token
             else:
                 tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
                 user = tmp.get("user")
@@ -160,11 +163,10 @@ def before_decorator():
 
                 res = UsersRDB.validate_info(user)
                 if res != password:
-                    raise ValueError("your information cannot be identify")
+                    raise ValueError("Your information cannot be identify!")
             g.user = user
-    except Exception:
-        print("Unauthorized user. Login required")
-        rsp_txt = "Unauthorized user. Login required"
+    except Exception as exp:
+        rsp_txt = "ERROR: Unauthorized user. Login required.\n{}".format(exp)
         rsp_status = 504
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         return full_rsp
@@ -261,20 +263,15 @@ def login():
         }
         sql = str("SELECT status FROM users where email = " + "\"" + user + "\"" + ";")
         data = DataAdaptor.run_q(sql)
-        # print(json.dumps(data, indent=4))
         status = data[1][0]['status']
         if status == 'ACTIVE':
-            # print(type(rsp_data), rsp_data)
             rsp_status = 200
             rsp_txt = json.dumps(rsp_data)
-            # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
             full_rsp.headers["Token"] = encoded_password
         else:
-            # print(type(rsp_data), rsp_data)
             rsp_status = 403
             rsp_txt = "User not Activated."
-            # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
     else:
@@ -922,9 +919,8 @@ def resource_by_template(primary_key_value=None):
 def get_articles():
     if request.method == 'GET':
         try:
-            # TODO need to sync with fronted end should be good now :)
             curr_user = g.user
-            results = UsersRDB.find_postinfo(curr_user)
+            results = UsersRDB.find_post_by_authors(curr_user)
 
             rsp_status = 200
             full_rsp = Response(results, status=rsp_status, content_type="application/json")
@@ -940,12 +936,11 @@ def get_articles():
         curr_user = g.user
         content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'],
                    'date': request.json['date']}
-        print(content)
         try:
             result = UsersRDB.create_post(content)
             print(result)
             if result != 0:
-                results = UsersRDB.find_postinfo(curr_user)
+                results = UsersRDB.find_post_by_authors(curr_user)
             else:
                 results = []
             rsp_status = 200
@@ -966,11 +961,11 @@ def logout():
     return full_rsp
 
 
-@application.route('/articles/<postId>', methods=['GET', 'POST'])
-def get_comments(postId):
+@application.route('/articles/<post_id>', methods=['GET', 'POST'])
+def get_comments(post_id):
     if request.method == 'GET':
         try:
-            results = UsersRDB.get_comments_of_post(postId)
+            results = UsersRDB.get_comments_of_post(post_id)
             rsp_status = 200
         except Exception as e:
             results = "Not Found"
@@ -981,16 +976,30 @@ def get_comments(postId):
 
     elif request.method == 'POST':
         curr_user = g.user
-        content = {'author': curr_user, 'to_post': postId, 'content': request.json['content'],
+        content = {'author': curr_user, 'to_post': post_id, 'content': request.json['content'],
                    'date': request.json['date']}
         try:
             results = UsersRDB.create_comment(content)
             rsp_status = 200
-        except Exception as e:
+        except Exception as exp:
             results = "Not Found"
             rsp_status = 404
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         return full_rsp
+
+
+@application.route('/following', methods=['GET'])
+def get_following_users():
+    try:
+        results = UsersRDB.get_following_users(g.user)
+        rsp_status = 200
+
+    except Exception as exp:
+        results = "Not Found"
+        rsp_status = 404
+
+    full_rsp = Response(results, status=rsp_status, content_type="application/json")
+    return full_rsp
 
 
 logger.debug("__name__ = " + str(__name__))

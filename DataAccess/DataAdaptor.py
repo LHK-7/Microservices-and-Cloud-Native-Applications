@@ -8,6 +8,7 @@ logger = logging.getLogger()
 
 _default_connection = None
 
+
 def _get_default_connection():
     global _default_connection
 
