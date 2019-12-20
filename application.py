@@ -78,9 +78,8 @@ allowed_url = 'https://d32e0zjclv95xl.cloudfront.net'
 # allowed_url = 'http://localhost:4200' # TODO: change this to cloudfront
 
 # Enable CORS
-CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
-
-application.config['CORS_HEADERS',] = 'Content-Type'
+CORS(application, resources={r"/*": {"origins": config['ORIGINS']}},
+     headers='Content-Type, Authorization, Token', supports_credentials=True)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -144,14 +143,14 @@ application.config['SECRET_KEY'] = SECRET_KEY
 def before_decorator():
     rule = request.endpoint
     try:
-        if rule is 'registration' or rule is 'login' or request.method == 'OPTIONS' or request.headers.get(
+        if request.method == 'OPTIONS' or rule is 'registration' or rule is 'login' or request.headers.get(
                 "pass") == 'sL36KjRf5oAc79ifhPJAz1bqi03WQPCC':
             pass
         else:
             token = request.headers.get("Token")
             fblogin = False
-            if request.headers.has_key("FBlogin"):
-                fblogin = json.loads(request.headers["FBlogin"])
+            if request.headers.has_key("Authorization"):
+                fblogin = json.loads(request.headers["Authorization"])
             if fblogin:
                 user = token
             else:
