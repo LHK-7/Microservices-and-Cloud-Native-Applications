@@ -149,8 +149,8 @@ def before_decorator():
             pass
         else:
             token = request.headers.get("Token")
-            fblogin = None
-            if request.headers.get("FBlogin"):
+            fblogin = False
+            if request.headers.has_key("FBlogin"):
                 fblogin = json.loads(request.headers["FBlogin"])
             if fblogin:
                 user = token
