@@ -364,8 +364,8 @@ def user_email(email):
     return full_rsp
 
 
-@application.route("/addresses", methods=["POST", "PUT"])
-def post_address():
+@application.route("/addresses", methods=["POST"])
+def create_address():
     """
     request_body = {
         "address_line_1": "13161 Brayton Drive",
@@ -378,15 +378,24 @@ def post_address():
     validated = validate_address(input_address)
     if validated == 'Invalid.':
         # if address is invalid, return False
-        return False
+        rsp_status = 422
+        rsp_txt = "Invalid Address."
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+        return full_rsp
     else:
         # if success, return the address id
-        return dynamo.addAddress(validated)
+        rsp_status = 201
+        rsp_txt = dynamo.addAddress(validated)
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+        return full_rsp
 
 
 @application.route("/addresses/<address_id>", methods=["GET"])
-def get_address(address_id):
-    return dynamo.getAddress(address_id)
+def get_or_update_address(address_id):
+    rsp_status = 200
+    rsp_txt = json.dumps(dynamo.getAddress(address_id))
+    full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+    return full_rsp
 
 
 # test_received = {
