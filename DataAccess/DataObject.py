@@ -35,21 +35,22 @@ class UsersRDB(BaseDataObject):
 
     @classmethod
     def get_by_email(cls, email):
-
-        sql = "select * from users where email=%s"
-        res, data = data_adaptor.run_q(sql=sql, args=(email), fetch=True)
+        sql, args = data_adaptor.create_select(table_name="users", template={"email": email}, fields=["*"])
+        res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
         if data is not None and len(data) > 0:
             result = data[0]
         else:
             result = None
-
         return result
 
     @classmethod
+    def get_user_status(cls, email):
+        sql, args = data_adaptor.create_select(table_name="users", template={"email": email}, fields=["status"])
+        res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
+        return data[0]['status'] if res == 1 else None
+
+    @classmethod
     def create_user(cls, user_info):
-
-        result = None
-
         try:
             sql, args = data_adaptor.create_insert(table_name="users", row=user_info)
             res, data = data_adaptor.run_q(sql, args)
@@ -62,14 +63,12 @@ class UsersRDB(BaseDataObject):
                 raise (DataException(DataException.duplicate_key))
             else:
                 raise DataException()
-        except Exception as e:
+        except Exception as exp:
             raise DataException()
-
         return result
 
     @classmethod
     def update_user(cls, user_info, template):
-        result = None
         try:
             sql, args = data_adaptor.create_update(table_name="users", new_values=user_info, template=template)
             res, data = data_adaptor.run_q(sql, args)
@@ -77,7 +76,7 @@ class UsersRDB(BaseDataObject):
                 result = None
             else:
                 result = res
-        except Exception as e:
+        except Exception as exp:
             raise DataException()
 
         return result
