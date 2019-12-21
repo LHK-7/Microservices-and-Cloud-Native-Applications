@@ -427,6 +427,7 @@ def profile_service_1():
 
     if request.method == "GET":
         try:
+            profile_id = request.args.get("profile_id")
             user_service = _get_user_service()
             profile = user_service.get_profile_by_id(profile_id)
             profile["links"] = [
