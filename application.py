@@ -435,6 +435,18 @@ def profile_service_2(profile_id):
         try:
             user_service = _get_user_service()
             profile = user_service.get_profile_by_id(profile_id)
+            profile["links"] = [
+                {
+                    "href": "/api/customers/<email>/profile",
+                    "rel": "profile",
+                    "method": "GET"
+                },
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                }
+            ]
             # etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
 
@@ -491,6 +503,18 @@ def show_profile(email):
         try:
             user_service = _get_user_service()
             profile = user_service.get_profile_by_email(email)
+            profile["links"] = [
+                {
+                    "href": "api/profile/<email> ",
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
+                },
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                }
+            ]
             etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
 
