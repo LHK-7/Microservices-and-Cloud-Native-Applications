@@ -29,7 +29,7 @@ from Middleware.authentication import Authentication
 from Middleware.authorization import authorization
 from DataAccess.DataObject import UsersRDB as UsersRDB
 from CustomerInfo.Address import validate_address
-from werkzeug.security import generate_password_hash,check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -504,6 +504,23 @@ def profile_service_2(profile_id):
         try:
             user_service = _get_user_service()
             profile = user_service.get_profile_by_id(profile_id)
+            profile["links"] = [
+                {
+                    "href": "/api/user/" + profile["user_id"] + "/profile",
+                    "rel": "profile",
+                    "method": "GET"
+                },
+                {
+                    "href": "/api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                },
+                {
+                    "href": "/api/profile/" + profile_id,
+                    "rel": "profile",
+                    "method": "PUT, DELETE"
+                }
+            ]
             # etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
 
@@ -560,6 +577,18 @@ def show_profile(email):
         try:
             user_service = _get_user_service()
             profile = user_service.get_profile_by_email(email)
+            profile["links"] = [
+                {
+                    "href": "/api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                },
+                {
+                    "href": "/api/profile/" + profile['profile_id'],
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
+                }
+            ]
             etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
 
