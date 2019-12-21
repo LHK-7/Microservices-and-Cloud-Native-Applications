@@ -318,12 +318,12 @@ def user_email(email):
 
             links = "links": [
                 {
-                    "href": "api/profile/<email> ",
+                    "href": "api/profile/" + email,
                     "rel": "profile",
                     "method": "GET, PUT, DELETE"
                 },
                 {
-                    "href": "/api/customers/<email>/profile",
+                    "href": "/api/user/" + email + "/profile",
                     "rel": "profile",
                     "method": "GET"
                 },
@@ -420,7 +420,51 @@ def get_or_update_address(address_id):
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
-    return None
+    global _user_service
+
+    rsp_txt = "Bad request: "
+    rsp_status = 400
+
+    if request.method == "GET":
+        try:
+            user_service = _get_user_service()
+            profile = user_service.get_profile_by_id(profile_id)
+            profile["links"] = [
+                {
+                    "href": "api/profile/" + profile["email"],
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
+                },
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                }
+            ]
+            # etag = to_etag(profile)
+            rsp_txt = json.dumps(profile)
+
+            rsp_status = 200
+            # rsp.headers["ETag"] = etag
+            # rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
+
+        except Exception as exp:
+            rsp_txt += str(exp)
+
+    elif request.method == "POST":
+        try:
+            user_service = _get_user_service()
+            profile = log_and_extract_input()["body"]
+            profile_id = str(uuid.uuid4())
+            res = user_service.update_profile_by_id(profile_id, profile)
+            rsp_txt = "entries updated"
+            rsp_status = 200
+        except Exception as exp:
+            rsp_txt += str(exp)
+
+
+    rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    return rsp
 
 
 # Etag (GET|PUT) is implemented here.
@@ -437,7 +481,7 @@ def profile_service_2(profile_id):
             profile = user_service.get_profile_by_id(profile_id)
             profile["links"] = [
                 {
-                    "href": "/api/customers/<email>/profile",
+                    "href": "/api/user/"+ profile["email"] + "/profile",
                     "rel": "profile",
                     "method": "GET"
                 },
@@ -505,7 +549,7 @@ def show_profile(email):
             profile = user_service.get_profile_by_email(email)
             profile["links"] = [
                 {
-                    "href": "api/profile/<email> ",
+                    "href": "api/profile/" + profile["email"],
                     "rel": "profile",
                     "method": "GET, PUT, DELETE"
                 },
