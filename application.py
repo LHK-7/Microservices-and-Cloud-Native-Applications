@@ -427,21 +427,23 @@ def profile_service_1():
 
     if request.method == "GET":
         try:
-            profile_id = request.args.get("profile_id")
+            user_id = request.args.get("user_id")
             user_service = _get_user_service()
-            profile = user_service.get_profile_by_id(profile_id)
-            profile["links"] = [
-                {
-                    "href": "api/profile/" + profile["email"],
-                    "rel": "profile",
-                    "method": "GET, PUT, DELETE"
-                },
-                {
-                    "href": "api/profile ",
-                    "rel": "profile",
-                    "method": "GET, POST"
-                }
-            ]
+            profile = user_service.get_profile_by_id(user_id)
+            if profile:
+                profile["links"] = [
+                    {
+                        "href": "api/profile/" + profile["email"],
+                        "rel": "profile",
+                        "method": "GET, PUT, DELETE"
+                    },
+                    {
+                        "href": "api/profile ",
+                        "rel": "profile",
+                        "method": "GET, POST"
+                    }
+                ]
+            
             # etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
 
