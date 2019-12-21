@@ -160,7 +160,7 @@ def before_decorator():
                 password = tmp.get("password")
 
                 res = UsersRDB.validate_info(user)
-                if res != password:
+                if not check_password_hash(res, password):
                     raise ValueError("Your information cannot be identify!")
             g.user = user
     except Exception as exp:
@@ -264,6 +264,9 @@ def login():
     """
     user = request.json['username']
     password = request.json['password']
+
+    print(generate_password_hash(password))
+
     res = Authentication.validate({user: password})
     if res:
         encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
