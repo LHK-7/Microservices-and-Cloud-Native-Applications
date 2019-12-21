@@ -138,7 +138,7 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #
 #     return decorated_function
 
-# TODO: this should be moved to middleware. Check prof's code.
+
 @application.before_request
 def before_decorator():
     rule = request.endpoint
