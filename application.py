@@ -461,7 +461,11 @@ def profile_service_1():
             profile = log_and_extract_input()["body"]
             profile_id = str(uuid.uuid4())
             res = user_service.update_profile_by_id(profile_id, profile)
-            rsp_txt = "profile created"
+            rsp = {
+                "profile_id": profile_id,
+                "result": "profile created"
+            }
+            rsp_txt = json.dumps(rsp)
             rsp_status = 201
         except Exception as exp:
             rsp_txt += str(exp)
