@@ -424,10 +424,11 @@ def get_or_update_address(address_id):
     return full_rsp
 
 
-# query string: ?user_id=<use_id>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
     """
+    GET: query string example: ?user_id=<use_id>
+
     POST: request_body_example = {
         "user_id": "ml82@e6156.edu",
         "profile_entries": [
@@ -456,7 +457,24 @@ def profile_service_1():
     rsp_status = 400
 
     if request.method == "GET":
-        pass
+        user_id = request.args.get("user_id")
+        user_service = _get_user_service()
+        profile = user_service.get_profile_by_email(user_id)
+        if profile:
+            profile["links"] = [
+                {
+                    "href": "api/profile/" + profile["profile_id"],
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
+                },
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                }
+            ]
+        rsp_txt = json.dumps(profile)
+        rsp_status = 200
 
     elif request.method == "POST":
         try:
