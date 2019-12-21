@@ -34,7 +34,7 @@ class UsersRDB(BaseDataObject):
         self._ctx = ctx
 
     @classmethod
-    def get_by_email(cls, email):
+    def get_user_by_email(cls, email):
         sql, args = data_adaptor.create_select(table_name="users", template={"email": email}, fields=["*"])
         res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
         if data is not None and len(data) > 0:
@@ -48,6 +48,50 @@ class UsersRDB(BaseDataObject):
         sql, args = data_adaptor.create_select(table_name="users", template={"email": email}, fields=["status"])
         res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
         return data[0]['status'] if res == 1 else None
+
+    @classmethod
+    def get_profile_by_userid(cls, userid):
+        sql, args = data_adaptor.create_select(table_name="profile",
+                                               template={"user_id": userid},
+                                               fields=["user_id", "profile_id", "element_type AS type",
+                                                       "element_subtype AS subtype", "element_value AS value"])
+        res, data = data_adaptor.run_q(sql, args=args)
+        return data if res > 0 else []
+
+    @classmethod
+    def get_profile_by_id(cls, pid):
+        sql, args = data_adaptor.create_select(table_name="profile",
+                                               template={"profile_id": pid},
+                                               fields=["user_id", "profile_id", "element_type AS type",
+                                                       "element_subtype AS subtype", "element_value AS value"])
+        res, data = data_adaptor.run_q(sql, args=args)
+        return data
+
+    @classmethod
+    def update_profile_by_id(cls, pid, new_values):
+        sql = []
+        for val in new_values:
+            sql.append("""
+                INSERT INTO profile (user_id, element_type, element_subtype, profile_id, element_value) 
+                VALUES (\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\") 
+                ON DUPLICATE KEY UPDATE 
+                user_id = \"{0}\",
+                element_type = \"{1}\",
+                element_subtype = \"{2}\",
+                profile_id = \"{3}\",
+                element_value = \"{4}\";
+            """.format(val["user_id"], val["element_type"], val["element_subtype"],
+                       val["profile_id"], val["element_value"]))
+        res, data = data_adaptor.run_q(sql, many=True)
+
+        return res
+
+    @classmethod
+    def delete_profile_by_id(cls, pid):
+        sql, args = data_adaptor.create_delete(table_name="profile",
+                                               template={"profile_id": pid})
+        res, data = data_adaptor.run_q(sql, args=args)
+        return res
 
     @classmethod
     def create_user(cls, user_info):
