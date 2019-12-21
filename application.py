@@ -560,12 +560,13 @@ def profile_service_2(profile_id):
             user_service = _get_user_service()
             profile = log_and_extract_input()["body"]
             original_profile = user_service.get_profile_by_id(profile_id)
-
-            etag = to_etag(original_profile)
+            # print(type(original_profile)) # dict
+            server_etag = to_etag(original_profile)
+            print("server etag = ", server_etag)
             if not request.headers.get("If-Match"):
                 rsp_txt = "Missing ETag"
                 rsp_status = 428
-            elif etag == request.headers.get("If-Match"):
+            elif server_etag == request.headers.get("If-Match"):
                 res = user_service.update_profile_by_id(profile_id, profile)
                 rsp_txt = "entries updated"
                 rsp_status = 200
@@ -601,6 +602,7 @@ def show_profile(email):
         try:
             user_service = _get_user_service()
             profile = user_service.get_profile_by_email(email)
+            etag = to_etag(profile)
             profile["links"] = [
                 {
                     "href": "/api/profile ",
@@ -618,7 +620,6 @@ def show_profile(email):
                     "method": "GET"
                 },
             ]
-            etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
 
             rsp_status = 200
