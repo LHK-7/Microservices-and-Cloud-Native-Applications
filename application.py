@@ -257,9 +257,7 @@ def login():
             "result": res,
             "Token": encoded_password
         }
-        sql = str("SELECT status FROM users where email = " + "\"" + user + "\"" + ";")
-        data = DataAdaptor.run_q(sql)
-        status = data[1][0]['status']
+        status = UsersRDB.get_user_status(user)
         if status == 'ACTIVE':
             rsp_status = 200
             rsp_txt = json.dumps(rsp_data)
