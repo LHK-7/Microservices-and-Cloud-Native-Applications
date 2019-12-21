@@ -587,7 +587,12 @@ def show_profile(email):
                     "href": "/api/profile/" + profile['profile_id'],
                     "rel": "profile",
                     "method": "GET, PUT, DELETE"
-                }
+                },
+                {
+                    "href": "/api/user/" + profile['user_id'],
+                    "rel": "user",
+                    "method": "GET"
+                },
             ]
             etag = to_etag(profile)
             rsp_txt = json.dumps(profile)
