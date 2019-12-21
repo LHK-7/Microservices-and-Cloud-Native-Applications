@@ -220,6 +220,14 @@ def log_response(method, status, data, txt):
 # Registration service.
 @application.route("/api/user/registration", endpoint="registration", methods=["POST"])
 def user_register():
+    """
+    request_body_example = {
+        "last_name": "ma",
+        "first_name": "ruibin",
+        "email": "xxxx@gmail.com",
+        "password": "Mark123"
+    }
+    """
     global _user_service
 
     param = request.get_json()
@@ -237,7 +245,7 @@ def user_register():
         user_service = _get_user_service()
         user_service.create_user(temp)
         rsp_txt = json.dumps("user created")
-        rsp_status = 200
+        rsp_status = 201
     except Exception as exp:
         rsp_txt = json.dumps(exp)
 
@@ -248,6 +256,12 @@ def user_register():
 
 @application.route("/api/user/login", endpoint="login", methods=["POST"])
 def login():
+    """
+    request_body_example = {
+        "username":"xxx@gmail.com",
+        "password":"123"
+    }
+    """
     user = request.json['username']
     password = request.json['password']
     res = Authentication.validate({user: password})
@@ -306,9 +320,23 @@ def user_email(email):
             rsp = user_service.get_user_by_email(email)
 
             if rsp is not None:
+                links = {"links": [
+                    {
+                        "href": "/api/user/" + email + "/profile",
+                        "rel": "profile",
+                        "method": "GET"
+                    },
+                    {
+                        "href": "api/profile ",
+                        "rel": "profile",
+                        "method": "GET, POST"
+                    }
+                ]}
+                rsp.update(links)
                 rsp_data = rsp
                 rsp_status = 200
                 rsp_txt = "OK"
+
             else:
                 rsp_data = None
                 rsp_status = 404
@@ -391,18 +419,53 @@ def get_or_update_address(address_id):
     return full_rsp
 
 
-# query string: ?email=<email>
+# query string: ?user_id=<use_id>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
+    """
+    POST: request_body_example = {
+        "user_id": "ml82@e6156.edu",
+        "profile_entries": [
+            {
+                "type": "address",
+                "subtype": "",
+                "value": "/addresses/81524"
+            },
+            {
+                "type": "email",
+                "subtype": "",
+                "value": "new.new.ml82@e6156.edu"
+            },
+            {
+                "type": "telephone",
+                "subtype": "home",
+                "value": "3463209962"
+            },
+            ...
+        ]
+    }
+    """
     global _user_service
 
-    # # get email from query string
-    # email = request.args.get("email")
-    #
-    # if request.method == "GET":
-    #     return
-    # elif request.method == "POST":
-    #     return
+    rsp_txt = "Bad request: "
+    rsp_status = 400
+
+    if request.method == "GET":
+        pass
+
+    elif request.method == "POST":
+        try:
+            user_service = _get_user_service()
+            profile = log_and_extract_input()["body"]
+            profile_id = str(uuid.uuid4())
+            res = user_service.update_profile_by_id(profile_id, profile)
+            rsp_txt = "profile created"
+            rsp_status = 201
+        except Exception as exp:
+            rsp_txt += str(exp)
+
+    rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    return rsp
 
 
 # Etag (GET|PUT) is implemented here.
