@@ -302,7 +302,7 @@ def user_email(email):
 
         if inputs["method"] == "GET":
 
-            rsp = user_service.get_by_email(email)
+            rsp = user_service.get_user_by_email(email)
 
             if rsp is not None:
                 # etag = to_etag(rsp)
@@ -396,495 +396,101 @@ def get_or_update_address(address_id):
     return full_rsp
 
 
-# test_received = {
-#     "display_name": "rubin",
-#     "home_phone": "1564648",
-#     "work_phone": "6485612",
-#     "address_line_1": "13161 Brayton Drive",
-#     "address_line_2": "APT #30",
-#     "city": "Anchorage",
-#     "state": "AK"
-# }
-
-
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
     global _user_service
 
-    # get email from query string
-    email = request.args.get("email")
-
-    if request.method == "GET":
-        # profile = {}
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            return "No, Not found.."
-
-        # Get display_name.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"display_name\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            display_name = ""
-        else:
-            display_name = rsp_data[1][0]['value']
-        # print("\nsql data =", json.dumps(rsp_data[1], indent=4))
-        # The sql response is a list, inside which is an unordered dict.
-        # sql data = [
-        #     {
-        #         "user": "maruibin123@gmail.com",
-        #         "type": "display_name",
-        #         "subtype": "n.a.",
-        #         "value": "rubin"
-        #     }
-        # ]
-        # profile.update()
-
-        # Get home_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            home_phone = ""
-        else:
-            home_phone = rsp_data[1][0]['value']
-
-        # Get work_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            work_phone = ""
-        else:
-            work_phone = rsp_data[1][0]['value']
-
-        # Get address.
-        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"address_id\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            address_line_1 = ""
-            address_line_2 = ""
-            city = ""
-            state = ""
-        else:
-            address_id = rsp_data[1][0]["value"]
-            address = get_address(address_id)
-            # print(json.dumps(address, indent=4))
-            address_line_1 = address['address_line_1']
-            address_line_2 = address['address_line_2']
-            city = address['city']
-            state = address['state']
-
-        # Construct profile.
-        profile = {
-            "display_name": display_name,
-            "home_phone": home_phone,
-            "work_phone": work_phone,
-            "address_line_1": address_line_1,
-            "address_line_2": address_line_2,
-            "city": city,
-            "state": state,
-            "links": [
-                {
-                    "href": "api/profile/<email> ",
-                    "rel": "profile",
-                    "method": "GET, PUT, DELETE"
-                },
-                {
-                    "href": "/api/user/<email>/profile",
-                    "rel": "profile",
-                    "method": "GET"
-                }
-            ]
-        }
-
-        return json.dumps(profile)
-
-    elif request.method == "POST":
-        received = request.json
-
-        # Parse the single address. This requires the user type address in a certain format.
-        full_address = received.get('address_line_1').split(',')
-        street = full_address[0]
-        city_state = full_address[1].split(" ")
-        city = " ".join(city_state[1:-1])
-        state = city_state[-1]
-        if received.get('address_line_2') is None:
-            addrs2 = ' '
-        else:
-            addrs2 = received.get('address_line_2')
-
-        # Handle address.
-        # received_address = {
-        #     "address_line_1": received['address_line_1'],
-        #     "address_line_2": received['address_line_2'],
-        #     "city": received['city'],
-        #     "state": received['state'],
-        # }
-        received_address = {
-            "address_line_1": street,
-            "address_line_2": addrs2,
-            "city": city,
-            "state": state,
-        }
-
-        address_id = post_address(received_address)
-        # if received address is invalid:
-        if not address_id:
-            return "Invalid Address"
-            # return "No candidates. This means the address is not valid. Please go back and submit again."
-        sql = str(
-            "INSERT INTO profile (user, value, type, subtype) VALUES ("
-            + "\"" + email + "\""
-            + ", "
-            + "\"" + address_id + "\""
-            + ", "
-            + "\"address_id\""
-            + ", "
-            + "\"n.a.\""
-            + ");")
-        rsp_data = DataAdaptor.run_q(sql)
-
-        # Handle home phone.
-        home_phone = received['home_phone']
-        if home_phone:
-            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
-                      + ", "
-                      + "\"" + home_phone + "\""
-                      + ", "
-                      + "\"phone\""
-                      + ", "
-                      + "\"home\""
-                      + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-
-        # Handle work phone.
-        work_phone = received['work_phone']
-        if work_phone:
-            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
-                      + ", "
-                      + "\"" + work_phone + "\""
-                      + ", "
-                      + "\"phone\""
-                      + ", "
-                      + "\"work\""
-                      + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-
-        # Handle display_name.
-        display_name = received['display_name']
-        if display_name:
-            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
-                      + ", "
-                      + "\"" + display_name + "\""
-                      + ", "
-                      + "\"display_name\""
-                      + ", "
-                      + "\"n.a.\""
-                      + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-
-        # full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
-        # full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        # full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-        # full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-        # full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
-
-        return "Success"
+    # # get email from query string
+    # email = request.args.get("email")
+    #
+    # if request.method == "GET":
+    #     return
+    # elif request.method == "POST":
+    #     return
 
 
 # Etag (GET|PUT) is implemented here.
-@application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
-def profile_service_2(email):
+@application.route("/api/profile/<profile_id>", methods=["GET", "PUT", "DELETE"])
+def profile_service_2(profile_id):
     global _user_service
 
-    def get_profile(em):
-        email = em
-        # Get display_name.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"display_name\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            display_name = ""
-        else:
-            display_name = rsp_data[1][0]['value']
-
-        # Get home_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            home_phone = ""
-        else:
-            home_phone = rsp_data[1][0]['value']
-
-        # Get work_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            work_phone = ""
-        else:
-            work_phone = rsp_data[1][0]['value']
-
-        # Get address.
-        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"address_id\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            address_line_1 = ""
-            address_line_2 = ""
-            city = ""
-            state = ""
-        else:
-            address_id = rsp_data[1][0]["value"]
-            address = get_address(address_id)
-            # print(json.dumps(address, indent=4))
-            address_line_1 = address['address_line_1']
-            address_line_2 = address['address_line_2']
-            city = address['city']
-            state = address['state']
-
-        # Construct profile.
-        profile = {
-            "display_name": display_name,
-            "home_phone": home_phone,
-            "work_phone": work_phone,
-            "address_line_1": address_line_1,
-            "address_line_2": address_line_2,
-            "city": city,
-            "state": state,
-            "links": [
-                {
-                    "href": "api/profile ",
-                    "rel": "profile",
-                    "method": "GET, POST"
-                },
-                {
-                    "href": "/api/user/<email>/profile",
-                    "rel": "profile",
-                    "method": "GET"
-                }
-            ]
-        }
-        return profile
+    rsp_txt = "Bad request: "
+    rsp_status = 400
 
     if request.method == "GET":
-        # profile = {}
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            full_rsp = Response("Not Found", status=404, content_type="application/json")
-            return full_rsp
-        else:
-            profile = get_profile(email)
-            etag = to_etag(profile)
-            full_rsp = Response(json.dumps(profile), status=200, content_type="application/json")
-            full_rsp.headers["ETag"] = etag
-            full_rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
-            return full_rsp
+        try:
+            user_service = _get_user_service()
+            profile = user_service.get_profile_by_id(profile_id)
+            # etag = to_etag(profile)
+            rsp_txt = json.dumps(profile)
+
+            rsp_status = 200
+            # rsp.headers["ETag"] = etag
+            # rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
+
+        except Exception as exp:
+            rsp_txt += str(exp)
 
     elif request.method == "PUT":
-        received = request.json
-        if request.headers.get("If-Match") is None:
-            full_rsp = Response("No ETag", status=403, content_type="application/json")
-            return full_rsp
-        else:
-            etag = to_etag(get_profile(email))
-            if etag == request.headers.get("If-Match"):
-                if "display_name" not in received or not received["display_name"]:
-                    pass
-                else:
-                    sql = str(
-                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
-                            received["display_name"] + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        sql = str("UPDATE profile SET value = " + "\"" + received[
-                            "display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
-                        rsp_data = DataAdaptor.run_q(sql)
+        try:
+            user_service = _get_user_service()
+            profile = log_and_extract_input()["body"]
+            original_profile = user_service.get_profile_by_id(profile_id)
 
-                if "home_phone" not in received or not received["home_phone"]:
-                    pass
-                else:
-                    sql = str(
-                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
-                            received["home_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        sql = "UPDATE profile SET value = " + "\"" + received[
-                            "home_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
-                        rsp_data = DataAdaptor.run_q(sql)
-
-                if "work_phone" not in received or not received["work_phone"]:
-                    pass
-                else:
-                    sql = str(
-                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
-                            received["work_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        sql = "UPDATE profile SET value = " + "\"" + received[
-                            "work_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
-                        rsp_data = DataAdaptor.run_q(sql)
-
-                if "address_line_1" in received:
-
-                    # Parse the single address. This requires the user type address in a certain format.
-                    full_address = received.get('address_line_1').split(',')
-                    street = full_address[0]
-                    city_state = full_address[1].split(" ")
-                    city = " ".join(city_state[1:-1])
-                    state = city_state[-1]
-                    if received.get('address_line_2') is None:
-                        addrs2 = ' '
-                    else:
-                        addrs2 = received.get('address_line_2')
-
-                    # Handle address.
-                    # received_address = {
-                    #     "address_line_1": received['address_line_1'],
-                    #     "address_line_2": received['address_line_2'],
-                    #     "city": received['city'],
-                    #     "state": received['state'],
-                    # }
-                    received_address = {
-                        "address_line_1": street,
-                        "address_line_2": addrs2,
-                        "city": city,
-                        "state": state,
-                    }
-
-                    sql = str(
-                        "SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        address_id = post_address(received_address)
-                        # if received address is invalid:
-                        if not address_id:
-                            return "Invalid Address"
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES ("
-                            + "\"" + email + "\""
-                            + ", "
-                            + "\"" + address_id + "\""
-                            + ", "
-                            + "\"address_id\""
-                            + ", "
-                            + "\"n.a.\""
-                            + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        dynamo.updateAddress(address=received_address, address_id=rsp_data[1][0]['value'])
-
-                full_rsp = Response("Update Success.", status=200, content_type="application/json")
-                return full_rsp
+            etag = to_etag(original_profile)
+            if not request.headers.get("If-Match"):
+                rsp_txt = "Missing ETag"
+                rsp_status = 504
+            elif etag == request.headers.get("If-Match"):
+                res = user_service.update_profile_by_id(profile_id, profile)
+                rsp_txt = "entries updated"
+                rsp_status = 200
             else:
-                full_rsp = Response("ETag Not Match", status=412, content_type="application/json")
-                return full_rsp
+                rsp_txt = "ETag Does Not Match"
+                rsp_status = 504
+
+        except Exception as exp:
+            rsp_txt += str(exp)
 
     elif request.method == "DELETE":
-        sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        return "Delete Success."
+        try:
+            user_service = _get_user_service()
+            res = user_service.delete_profile_by_id(profile_id)
+            rsp_txt = "{} entries deleted".format(res)
+            rsp_status = 200
+
+        except Exception as exp:
+            rsp_txt += str(exp)
+
+    rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    return rsp
 
 
 @application.route("/api/user/<email>/profile", methods=["GET"])
 def show_profile(email):
     global _user_service
+
+    rsp_txt = "Bad request: "
+    rsp_status = 400
+
     if request.method == "GET":
-        # profile = {}
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            return "No, Not found.."
+        try:
+            user_service = _get_user_service()
+            profile = user_service.get_profile_by_email(email)
+            etag = to_etag(profile)
+            rsp_txt = json.dumps(profile)
 
-        # Get display_name.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"display_name\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            display_name = ""
-        else:
-            display_name = rsp_data[1][0]['value']
+            rsp_status = 200
+            rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            rsp.headers["ETag"] = etag
+            rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
 
-        # Get home_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            home_phone = ""
-        else:
-            home_phone = rsp_data[1][0]['value']
+        except Exception as exp:
+            rsp_txt += str(exp)
+            rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
-        # Get work_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            work_phone = ""
-        else:
-            work_phone = rsp_data[1][0]['value']
-
-        # Get address.
-        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"address_id\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            address_line_1 = ""
-            address_line_2 = ""
-            city = ""
-            state = ""
-        else:
-            address_id = rsp_data[1][0]["value"]
-            address = get_address(address_id)
-            # print(json.dumps(address, indent=4))
-            address_line_1 = address['address_line_1']
-            address_line_2 = address['address_line_2']
-            city = address['city']
-            state = address['state']
-
-        # Construct profile.
-        profile = {
-            "display_name": display_name,
-            "home_phone": home_phone,
-            "work_phone": work_phone,
-            "address_line_1": address_line_1,
-            "address_line_2": address_line_2,
-            "city": city,
-            "state": state,
-            "links": [
-                {
-                    "href": "api/profile/<email> ",
-                    "rel": "profile",
-                    "method": "GET, PUT, DELETE"
-                },
-                {
-                    "href": "api/profile ",
-                    "rel": "profile",
-                    "method": "GET, POST"
-                }
-            ]
-        }
-        return json.dumps(profile)
+        return rsp
 
 
 @application.route('/resource', methods=['GET'], defaults={'primary_key_value': None})
