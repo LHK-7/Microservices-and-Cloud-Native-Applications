@@ -407,6 +407,30 @@ def profile_service_1():
 # Etag (GET|PUT) is implemented here.
 @application.route("/api/profile/<profile_id>", methods=["GET", "PUT", "DELETE"])
 def profile_service_2(profile_id):
+    """
+    PUT: request_body_example = {
+        "profile_id": "sds-dsadsafdv-ds",
+        "user_id": "ml82@e6156.edu",
+        "profile_entries": [
+            {
+                "type": "address",
+                "subtype": "",
+                "value": "/addresses/81524"
+            },
+            {
+                "type": "email",
+                "subtype": "",
+                "value": "new.new.ml82@e6156.edu"
+            },
+            {
+                "type": "telephone",
+                "subtype": "home",
+                "value": "3463209962"
+            },
+            ...
+        ]
+    }
+    """
     global _user_service
 
     rsp_txt = "Bad request: "
