@@ -318,6 +318,8 @@ def user_email(email):
         if inputs["method"] == "GET":
 
             rsp = user_service.get_user_by_email(email)
+            rsp.pop('password')
+            rsp.pop('auto_id')
 
             if rsp is not None:
                 links = {"links": [
@@ -327,7 +329,7 @@ def user_email(email):
                         "method": "GET"
                     },
                     {
-                        "href": "api/profile ",
+                        "href": "/api/profile ",
                         "rel": "profile",
                         "method": "GET, POST"
                     }
