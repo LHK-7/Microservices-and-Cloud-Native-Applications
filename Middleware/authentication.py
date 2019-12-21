@@ -1,7 +1,5 @@
-import jwt
-
 from DataAccess.DataObject import UsersRDB as UsersRDB
-
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class Authentication:
 
@@ -16,4 +14,5 @@ class Authentication:
     def validate(cls, info):
         (user_email, user_password), = info.items()
         res = UsersRDB.validate_info(user_email)
-        return res == user_password
+        return check_password_hash(res, user_password)
+

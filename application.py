@@ -29,6 +29,7 @@ from Middleware.authentication import Authentication
 from Middleware.authorization import authorization
 from DataAccess.DataObject import UsersRDB as UsersRDB
 from CustomerInfo.Address import validate_address
+from werkzeug.security import generate_password_hash,check_password_hash
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -230,7 +231,7 @@ def user_register():
             'last_name': param['last_name'],
             'first_name': param['first_name'],
             'email': param['email'],
-            'password': param['password']
+            'password': generate_password_hash(param['password'])
         }
 
         user_service = _get_user_service()
