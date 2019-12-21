@@ -25,10 +25,12 @@ import DataAccess.dynamo as dynamo
 from Context.Context import Context
 from CustomerInfo.Users import UsersService as UserService
 from Middleware.etag import to_etag
-from Middleware.authentication import authentication
+from Middleware.authentication import Authentication
 from Middleware.authorization import authorization
 from DataAccess.DataObject import UsersRDB as UsersRDB
 from CustomerInfo.Address import validate_address
+from werkzeug.security import generate_password_hash,check_password_hash
+
 
 # Setup and use the simple, common Python logging framework. Send log messages to the console.
 # The application should get the log level out of the context. We will change later.
@@ -75,11 +77,11 @@ config = {
     ]
 }
 allowed_url = 'https://d32e0zjclv95xl.cloudfront.net'
+# allowed_url = 'http://localhost:4200' # TODO: change this to cloudfront
 
 # Enable CORS
-CORS(application, resources={r"/*": {"origins": config['ORIGINS']}}, supports_credentials=True)
-
-application.config['CORS_HEADERS',] = 'Content-Type'
+CORS(application, resources={r"/*": {"origins": config['ORIGINS']}},
+     headers='Content-Type, X-Api-Key, Token', supports_credentials=True)
 
 # add a rule for the index page. (Put here by AWS in the sample)
 application.add_url_rule('/', 'index', (lambda: header_text +
@@ -138,21 +140,21 @@ application.config['SECRET_KEY'] = SECRET_KEY
 #
 #     return decorated_function
 
-# TODO: this should be moved to middleware. Check prof's code.
+
 @application.before_request
 def before_decorator():
     rule = request.endpoint
     try:
-        if rule is 'registration' or request.method == 'OPTIONS' or request.headers.get(
+        if request.method == 'OPTIONS' or rule is 'registration' or rule is 'login' or request.headers.get(
                 "pass") == 'sL36KjRf5oAc79ifhPJAz1bqi03WQPCC':
             pass
-        elif rule is 'login':
-            pass
         else:
-            token = request.headers["Token"]
-            token = token.split(',')
-            if len(token) == 2 and token[1] == '000000':
-                user = token[0]
+            token = request.headers.get("Token")
+            fblogin = False
+            if request.headers.has_key("X-Api-Key"):
+                fblogin = json.loads(request.headers["X-Api-Key"])
+            if fblogin:
+                user = token
             else:
                 tmp = jwt.decode(request.headers["Token"], 'secret', algorithms=['HS256'])
                 user = tmp.get("user")
@@ -160,11 +162,10 @@ def before_decorator():
 
                 res = UsersRDB.validate_info(user)
                 if res != password:
-                    raise ValueError("your information cannot be identify")
+                    raise ValueError("Your information cannot be identify!")
             g.user = user
-    except Exception:
-        print("Unauthorized user. Login required")
-        rsp_txt = "Unauthorized user. Login required"
+    except Exception as exp:
+        rsp_txt = "ERROR: Unauthorized user. Login required.\n{}".format(exp)
         rsp_status = 504
         full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
         return full_rsp
@@ -216,7 +217,6 @@ def log_response(method, status, data, txt):
 
     logger.debug(str(datetime.now()) + ": \n" + json.dumps(msg, indent=2))
 
-
 # Registration service.
 @application.route("/api/user/registration", endpoint="registration", methods=["POST"])
 def user_register():
@@ -224,14 +224,15 @@ def user_register():
 
     param = request.get_json()
     rsp_status = 400  # bad request
-
+    tempass = param['password']
+    pass_hash = generate_password_hash(tempass)
     try:
         temp = {
             'id': str(uuid.uuid4()),
             'last_name': param['last_name'],
             'first_name': param['first_name'],
             'email': param['email'],
-            'password': param['password']
+            'password': pass_hash
         }
 
         user_service = _get_user_service()
@@ -250,8 +251,7 @@ def user_register():
 def login():
     user = request.json['username']
     password = request.json['password']
-    tmp = {user: password}
-    res = authentication.validate(tmp)
+    res = Authentication.validate({ user: password })
     if res:
         encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
             'utf-8')
@@ -259,22 +259,15 @@ def login():
             "result": res,
             "Token": encoded_password
         }
-        sql = str("SELECT status FROM users where email = " + "\"" + user + "\"" + ";")
-        data = DataAdaptor.run_q(sql)
-        # print(json.dumps(data, indent=4))
-        status = data[1][0]['status']
+        status = UsersRDB.get_user_status(user)
         if status == 'ACTIVE':
-            # print(type(rsp_data), rsp_data)
             rsp_status = 200
             rsp_txt = json.dumps(rsp_data)
-            # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
             full_rsp.headers["Token"] = encoded_password
         else:
-            # print(type(rsp_data), rsp_data)
             rsp_status = 403
             rsp_txt = "User not Activated."
-            # print(type(json.dumps(rsp_data)))
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
     else:
@@ -290,7 +283,7 @@ def login():
     full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
     full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
     full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
+    full_rsp.headers["Access-Control-Allow-Credentials"] = "true"
     full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
     return full_rsp
 
@@ -311,7 +304,7 @@ def user_email(email):
 
         if inputs["method"] == "GET":
 
-            rsp = user_service.get_by_email(email)
+            rsp = user_service.get_user_by_email(email)
 
             if rsp is not None:
                 # etag = to_etag(rsp)
@@ -322,6 +315,25 @@ def user_email(email):
                 rsp_data = None
                 rsp_status = 404
                 rsp_txt = "NOT FOUND"
+
+            links = "links": [
+                {
+                    "href": "api/profile/<email> ",
+                    "rel": "profile",
+                    "method": "GET, PUT, DELETE"
+                },
+                {
+                    "href": "/api/customers/<email>/profile",
+                    "rel": "profile",
+                    "method": "GET"
+                },
+                {
+                    "href": "api/profile ",
+                    "rel": "profile",
+                    "method": "GET, POST"
+                }
+            ]
+            return json.dumps(links)
 
         elif inputs["method"] == 'PUT':
             temp = {"email": email, "status": "ACTIVE"}
@@ -371,525 +383,127 @@ def user_email(email):
     return full_rsp
 
 
-@application.route("/addresses", methods=["POST", "PUT"])
-def post_address(input_address):
+@application.route("/addresses", methods=["POST"])
+def create_address():
+    """
+    request_body = {
+        "address_line_1": "13161 Brayton Drive",
+        "address_line_2": "APT #30",
+        "city": "Anchorage",
+        "state": "AK"
+    }
+    """
+    input_address = log_and_extract_input()['body']
     validated = validate_address(input_address)
-    if 'delivery_point_barcode' not in validated:
+    if validated == 'Invalid.':
         # if address is invalid, return False
-        return False
+        rsp_status = 422
+        rsp_txt = "Invalid Address."
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+        return full_rsp
     else:
         # if success, return the address id
-        return dynamo.addAddress(validated)
+        rsp_status = 201
+        rsp_txt = dynamo.addAddress(validated)
+        full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+        return full_rsp
 
 
 @application.route("/addresses/<address_id>", methods=["GET"])
-def get_address(address_id):
-    return dynamo.getAddress(address_id)
-
-
-test_received = {
-    "display_name": "rubin",
-    "home_phone": "1564648",
-    "work_phone": "6485612",
-    "address_line_1": "13161 Brayton Drive",
-    "address_line_2": "APT #30",
-    "city": "Anchorage",
-    "state": "AK"
-}
+def get_or_update_address(address_id):
+    rsp_status = 200
+    rsp_txt = json.dumps(dynamo.getAddress(address_id))
+    full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
+    return full_rsp
 
 
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
-    global _user_service
-
-    # get email from query string
-    email = request.args.get("email")
-
-    if request.method == "GET":
-        # profile = {}
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            return "No, Not found.."
-
-        # Get display_name.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"display_name\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            display_name = ""
-        else:
-            display_name = rsp_data[1][0]['value']
-        # print("\nsql data =", json.dumps(rsp_data[1], indent=4))
-        # The sql response is a list, inside which is an unordered dict.
-        # sql data = [
-        #     {
-        #         "user": "maruibin123@gmail.com",
-        #         "type": "display_name",
-        #         "subtype": "n.a.",
-        #         "value": "rubin"
-        #     }
-        # ]
-        # profile.update()
-
-        # Get home_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            home_phone = ""
-        else:
-            home_phone = rsp_data[1][0]['value']
-
-        # Get work_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            work_phone = ""
-        else:
-            work_phone = rsp_data[1][0]['value']
-
-        # Get address.
-        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"address_id\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            address_line_1 = ""
-            address_line_2 = ""
-            city = ""
-            state = ""
-        else:
-            address_id = rsp_data[1][0]["value"]
-            address = get_address(address_id)
-            # print(json.dumps(address, indent=4))
-            address_line_1 = address['address_line_1']
-            address_line_2 = address['address_line_2']
-            city = address['city']
-            state = address['state']
-
-        # Construct profile.
-        profile = {
-            "display_name": display_name,
-            "home_phone": home_phone,
-            "work_phone": work_phone,
-            "address_line_1": address_line_1,
-            "address_line_2": address_line_2,
-            "city": city,
-            "state": state,
-            "links": [
-                {
-                    "href": "api/profile/<email> ",
-                    "rel": "profile",
-                    "method": "GET, PUT, DELETE"
-                },
-                {
-                    "href": "/api/customers/<email>/profile",
-                    "rel": "profile",
-                    "method": "GET"
-                }
-            ]
-        }
-
-        return json.dumps(profile)
-
-    elif request.method == "POST":
-        received = request.json
-
-        # Parse the single address. This requires the user type address in a certain format.
-        full_address = received.get('address_line_1').split(',')
-        street = full_address[0]
-        city_state = full_address[1].split(" ")
-        city = " ".join(city_state[1:-1])
-        state = city_state[-1]
-        if received.get('address_line_2') is None:
-            addrs2 = ' '
-        else:
-            addrs2 = received.get('address_line_2')
-
-        # Handle address.
-        # received_address = {
-        #     "address_line_1": received['address_line_1'],
-        #     "address_line_2": received['address_line_2'],
-        #     "city": received['city'],
-        #     "state": received['state'],
-        # }
-        received_address = {
-            "address_line_1": street,
-            "address_line_2": addrs2,
-            "city": city,
-            "state": state,
-        }
-
-        address_id = post_address(received_address)
-        # if received address is invalid:
-        if not address_id:
-            return "Invalid Address"
-            # return "No candidates. This means the address is not valid. Please go back and submit again."
-        sql = str(
-            "INSERT INTO profile (user, value, type, subtype) VALUES ("
-            + "\"" + email + "\""
-            + ", "
-            + "\"" + address_id + "\""
-            + ", "
-            + "\"address_id\""
-            + ", "
-            + "\"n.a.\""
-            + ");")
-        rsp_data = DataAdaptor.run_q(sql)
-
-        # Handle home phone.
-        home_phone = received['home_phone']
-        if home_phone:
-            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
-                      + ", "
-                      + "\"" + home_phone + "\""
-                      + ", "
-                      + "\"phone\""
-                      + ", "
-                      + "\"home\""
-                      + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-
-        # Handle work phone.
-        work_phone = received['work_phone']
-        if work_phone:
-            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
-                      + ", "
-                      + "\"" + work_phone + "\""
-                      + ", "
-                      + "\"phone\""
-                      + ", "
-                      + "\"work\""
-                      + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-
-        # Handle display_name.
-        display_name = received['display_name']
-        if display_name:
-            sql = str("INSERT INTO profile (user, value, type, subtype) VALUES ("
-                      + "\"" + email + "\""
-                      + ", "
-                      + "\"" + display_name + "\""
-                      + ", "
-                      + "\"display_name\""
-                      + ", "
-                      + "\"n.a.\""
-                      + ");")
-            rsp_data = DataAdaptor.run_q(sql)
-
-        #follow line 364
-        rsp_status = 200
-        rsp_txt = "Success"
-        full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
-        full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
-	    full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-	    full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-	    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-	    full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
-
-        return full_rsp
+    return None
 
 
 # Etag (GET|PUT) is implemented here.
-@application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
-def profile_service_2(email):
+@application.route("/api/profile/<profile_id>", methods=["GET", "PUT", "DELETE"])
+def profile_service_2(profile_id):
     global _user_service
 
-    def get_profile(em):
-        email = em
-        # Get display_name.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"display_name\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            display_name = ""
-        else:
-            display_name = rsp_data[1][0]['value']
-
-        # Get home_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            home_phone = ""
-        else:
-            home_phone = rsp_data[1][0]['value']
-
-        # Get work_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            work_phone = ""
-        else:
-            work_phone = rsp_data[1][0]['value']
-
-        # Get address.
-        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"address_id\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            address_line_1 = ""
-            address_line_2 = ""
-            city = ""
-            state = ""
-        else:
-            address_id = rsp_data[1][0]["value"]
-            address = get_address(address_id)
-            # print(json.dumps(address, indent=4))
-            address_line_1 = address['address_line_1']
-            address_line_2 = address['address_line_2']
-            city = address['city']
-            state = address['state']
-
-        # Construct profile.
-        profile = {
-            "display_name": display_name,
-            "home_phone": home_phone,
-            "work_phone": work_phone,
-            "address_line_1": address_line_1,
-            "address_line_2": address_line_2,
-            "city": city,
-            "state": state,
-            "links": [
-                {
-                    "href": "api/profile ",
-                    "rel": "profile",
-                    "method": "GET, POST"
-                },
-                {
-                    "href": "/api/customers/<email>/profile",
-                    "rel": "profile",
-                    "method": "GET"
-                }
-            ]
-        }
-        return profile
+    rsp_txt = "Bad request: "
+    rsp_status = 400
 
     if request.method == "GET":
-        # profile = {}
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            full_rsp = Response("Not Found", status=404, content_type="application/json")
-            return full_rsp
-        else:
-            profile = get_profile(email)
-            etag = to_etag(profile)
-            full_rsp = Response(json.dumps(profile), status=200, content_type="application/json")
-            full_rsp.headers["ETag"] = etag
-            full_rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
-            return full_rsp
+        try:
+            user_service = _get_user_service()
+            profile = user_service.get_profile_by_id(profile_id)
+            # etag = to_etag(profile)
+            rsp_txt = json.dumps(profile)
+
+            rsp_status = 200
+            # rsp.headers["ETag"] = etag
+            # rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
+
+        except Exception as exp:
+            rsp_txt += str(exp)
 
     elif request.method == "PUT":
-        received = request.json
-        if request.headers.get("If-Match") is None:
-            full_rsp = Response("No ETag", status=403, content_type="application/json")
-            return full_rsp
-        else:
-            etag = to_etag(get_profile(email))
-            if etag == request.headers.get("If-Match"):
-                if "display_name" not in received or not received["display_name"]:
-                    pass
-                else:
-                    sql = str(
-                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"display_name\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
-                            received["display_name"] + "\"" + ", " + "\"display_name\"" + ", " + "\"n.a.\"" + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        sql = str("UPDATE profile SET value = " + "\"" + received[
-                            "display_name"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"display_name\" ")
-                        rsp_data = DataAdaptor.run_q(sql)
+        try:
+            user_service = _get_user_service()
+            profile = log_and_extract_input()["body"]
+            original_profile = user_service.get_profile_by_id(profile_id)
 
-                if "home_phone" not in received or not received["home_phone"]:
-                    pass
-                else:
-                    sql = str(
-                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
-                            received["home_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"home\"" + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        sql = "UPDATE profile SET value = " + "\"" + received[
-                            "home_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "home" + "\""
-                        rsp_data = DataAdaptor.run_q(sql)
-
-                if "work_phone" not in received or not received["work_phone"]:
-                    pass
-                else:
-                    sql = str(
-                        "SELECT * FROM profile where user = " + "\"" + email + "\"" + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES (" + "\"" + email + "\"" + ", " + "\"" +
-                            received["work_phone"] + "\"" + ", " + "\"phone\"" + ", " + "\"work\"" + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        sql = "UPDATE profile SET value = " + "\"" + received[
-                            "work_phone"] + "\"" + " WHERE user = " + "\"" + email + "\"" + " and " + "type = \"phone\" and subtype = " + "\"" + "work" + "\""
-                        rsp_data = DataAdaptor.run_q(sql)
-
-                if "address_line_1" in received:
-
-                    # Parse the single address. This requires the user type address in a certain format.
-                    full_address = received.get('address_line_1').split(',')
-                    street = full_address[0]
-                    city_state = full_address[1].split(" ")
-                    city = " ".join(city_state[1:-1])
-                    state = city_state[-1]
-                    if received.get('address_line_2') is None:
-                        addrs2 = ' '
-                    else:
-                        addrs2 = received.get('address_line_2')
-
-                    # Handle address.
-                    # received_address = {
-                    #     "address_line_1": received['address_line_1'],
-                    #     "address_line_2": received['address_line_2'],
-                    #     "city": received['city'],
-                    #     "state": received['state'],
-                    # }
-                    received_address = {
-                        "address_line_1": street,
-                        "address_line_2": addrs2,
-                        "city": city,
-                        "state": state,
-                    }
-
-                    sql = str(
-                        "SELECT value FROM profile where user = " + "\"" + email + "\"" + "AND type = \"address_id\"" + ";")
-                    rsp_data = DataAdaptor.run_q(sql)
-                    if rsp_data[0] == 0:
-                        address_id = post_address(received_address)
-                        # if received address is invalid:
-                        if not address_id:
-                            return "Invalid Address"
-                        sql = str(
-                            "INSERT INTO profile (user, value, type, subtype) VALUES ("
-                            + "\"" + email + "\""
-                            + ", "
-                            + "\"" + address_id + "\""
-                            + ", "
-                            + "\"address_id\""
-                            + ", "
-                            + "\"n.a.\""
-                            + ");")
-                        rsp_data = DataAdaptor.run_q(sql)
-                    else:
-                        dynamo.updateAddress(address=received_address, address_id=rsp_data[1][0]['value'])
-
-                full_rsp = Response(json.dumps("Update Success."), status=200, content_type="application/json")
-		        full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
-			    full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-			    full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-			    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-			    full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
-                return full_rsp
+            etag = to_etag(original_profile)
+            if not request.headers.get("If-Match"):
+                rsp_txt = "Missing ETag"
+                rsp_status = 504
+            elif etag == request.headers.get("If-Match"):
+                res = user_service.update_profile_by_id(profile_id, profile)
+                rsp_txt = "entries updated"
+                rsp_status = 200
             else:
-                full_rsp = Response(json.dumps("ETag Not Match"), status=412, content_type="application/json")
-                full_rsp.headers["Access-Control-Allow-Origin"] = allowed_url
-			    full_rsp.headers["Access-Control-Allow-Headers"] = "Content-Type"
-			    full_rsp.headers["Access-Control-Allow-Methods"] = "POST"
-			    full_rsp.headers["Access-Control-Allow-Credentials"] = 'true'
-			    full_rsp.headers["Access-Control-Expose-Headers"] = "Token"
-                return full_rsp
+                rsp_txt = "ETag Does Not Match"
+                rsp_status = 504
+
+        except Exception as exp:
+            rsp_txt += str(exp)
 
     elif request.method == "DELETE":
-        sql = str("DELETE from profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        return "Delete Success."
+        try:
+            user_service = _get_user_service()
+            res = user_service.delete_profile_by_id(profile_id)
+            rsp_txt = "{} entries deleted".format(res)
+            rsp_status = 200
+
+        except Exception as exp:
+            rsp_txt += str(exp)
+
+    rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+    return rsp
 
 
 @application.route("/api/user/<email>/profile", methods=["GET"])
 def show_profile(email):
     global _user_service
+
+    rsp_txt = "Bad request: "
+    rsp_status = 400
+
     if request.method == "GET":
-        # profile = {}
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            return "No, Not found.."
+        try:
+            user_service = _get_user_service()
+            profile = user_service.get_profile_by_email(email)
+            etag = to_etag(profile)
+            rsp_txt = json.dumps(profile)
 
-        # Get display_name.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"display_name\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            display_name = ""
-        else:
-            display_name = rsp_data[1][0]['value']
+            rsp_status = 200
+            rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
+            rsp.headers["ETag"] = etag
+            rsp.headers['Access-Control-Expose-Headers'] = 'ETag'
 
-        # Get home_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"home\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            home_phone = ""
-        else:
-            home_phone = rsp_data[1][0]['value']
+        except Exception as exp:
+            rsp_txt += str(exp)
+            rsp = Response(rsp_txt, status=rsp_status, content_type="application/json")
 
-        # Get work_phone.
-        sql = str("SELECT * FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"phone\" AND subtype = \"work\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            work_phone = ""
-        else:
-            work_phone = rsp_data[1][0]['value']
-
-        # Get address.
-        sql = str("SELECT value FROM profile where user = " + "\"" + email + "\""
-                  + "AND type = \"address_id\"" + ";")
-        rsp_data = DataAdaptor.run_q(sql)
-        if rsp_data[0] == 0:
-            address_line_1 = ""
-            address_line_2 = ""
-            city = ""
-            state = ""
-        else:
-            address_id = rsp_data[1][0]["value"]
-            address = get_address(address_id)
-            # print(json.dumps(address, indent=4))
-            address_line_1 = address['address_line_1']
-            address_line_2 = address['address_line_2']
-            city = address['city']
-            state = address['state']
-
-        # Construct profile.
-        profile = {
-            "display_name": display_name,
-            "home_phone": home_phone,
-            "work_phone": work_phone,
-            "address_line_1": address_line_1,
-            "address_line_2": address_line_2,
-            "city": city,
-            "state": state,
-            "links": [
-                {
-                    "href": "api/profile/<email> ",
-                    "rel": "profile",
-                    "method": "GET, PUT, DELETE"
-                },
-                {
-                    "href": "api/profile ",
-                    "rel": "profile",
-                    "method": "GET, POST"
-                }
-            ]
-        }
-        return json.dumps(profile)
+        return rsp
 
 
 @application.route('/resource', methods=['GET'], defaults={'primary_key_value': None})
@@ -936,9 +550,8 @@ def resource_by_template(primary_key_value=None):
 def get_articles():
     if request.method == 'GET':
         try:
-            # TODO need to sync with fronted end should be good now :)
             curr_user = g.user
-            results = UsersRDB.find_postinfo(curr_user)
+            results = UsersRDB.find_post_by_authors(curr_user)
 
             rsp_status = 200
             full_rsp = Response(results, status=rsp_status, content_type="application/json")
@@ -954,12 +567,11 @@ def get_articles():
         curr_user = g.user
         content = {'author': curr_user, 'content': request.json['text'], 'image': request.json['image'],
                    'date': request.json['date']}
-        print(content)
         try:
             result = UsersRDB.create_post(content)
             print(result)
             if result != 0:
-                results = UsersRDB.find_postinfo(curr_user)
+                results = UsersRDB.find_post_by_authors(curr_user)
             else:
                 results = []
             rsp_status = 200
@@ -980,11 +592,11 @@ def logout():
     return full_rsp
 
 
-@application.route('/articles/<postId>', methods=['GET', 'POST'])
-def get_comments(postId):
+@application.route('/articles/<post_id>', methods=['GET', 'POST'])
+def get_comments(post_id):
     if request.method == 'GET':
         try:
-            results = UsersRDB.get_comments_of_post(postId)
+            results = UsersRDB.get_comments_of_post(post_id)
             rsp_status = 200
         except Exception as e:
             results = "Not Found"
@@ -995,16 +607,30 @@ def get_comments(postId):
 
     elif request.method == 'POST':
         curr_user = g.user
-        content = {'author': curr_user, 'to_post': postId, 'content': request.json['content'],
+        content = {'author': curr_user, 'to_post': post_id, 'content': request.json['content'],
                    'date': request.json['date']}
         try:
             results = UsersRDB.create_comment(content)
             rsp_status = 200
-        except Exception as e:
+        except Exception as exp:
             results = "Not Found"
             rsp_status = 404
         full_rsp = Response(results, status=rsp_status, content_type="application/json")
         return full_rsp
+
+
+@application.route('/following', methods=['GET'])
+def get_following_users():
+    try:
+        results = UsersRDB.get_following_users(g.user)
+        rsp_status = 200
+
+    except Exception as exp:
+        results = "Not Found"
+        rsp_status = 404
+
+    full_rsp = Response(results, status=rsp_status, content_type="application/json")
+    return full_rsp
 
 
 logger.debug("__name__ = " + str(__name__))

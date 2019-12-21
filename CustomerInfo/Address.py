@@ -19,9 +19,12 @@ def validate_address(input_address):
           + "&street2=" + street2
     url = tmp.replace(' ', "%20").replace('#', '%23')
     # print(url)
-    response = requests.get(url)
-    # print(json.dumps(response.json()[0], indent=4))
-    return response.json()[0]
+    response = requests.get(url).json()
+    # print(json.dumps(response[0], indent=4))
+    if len(response) == 1 and 'delivery_point_barcode' in response[0]:
+        return response[0]
+    else:
+        return "Invalid."
 
 #
 # test_input_valid = {
@@ -113,3 +116,52 @@ def validate_address(input_address):
 #         "footnotes": "C#"
 #     }
 # }
+
+# res = [
+#   {
+#     "input_index": 0,
+#     "candidate_index": 0,
+#     "delivery_line_1": "3333 Broadway",
+#     "last_line": "New York NY 10031-8726",
+#     "delivery_point_barcode": "100318726994",
+#     "components": {
+#       "primary_number": "3333",
+#       "street_name": "Broadway",
+#       "city_name": "New York",
+#       "default_city_name": "New York",
+#       "state_abbreviation": "NY",
+#       "zipcode": "10031",
+#       "plus4_code": "8726",
+#       "delivery_point": "99",
+#       "delivery_point_check_digit": "4"
+#     },
+#     "metadata": {
+#       "record_type": "H",
+#       "zip_type": "Standard",
+#       "county_fips": "36061",
+#       "county_name": "New York",
+#       "carrier_route": "C041",
+#       "congressional_district": "13",
+#       "building_default_indicator": "Y",
+#       "rdi": "Commercial",
+#       "elot_sequence": "0010",
+#       "elot_sort": "D",
+#       "latitude": 40.81943,
+#       "longitude": -73.95552,
+#       "precision": "Zip9",
+#       "time_zone": "Eastern",
+#       "utc_offset": -5,
+#       "dst": "true"
+#     },
+#     "analysis": {
+#       "dpv_match_code": "D",
+#       "dpv_footnotes": "AAN1",
+#       "dpv_cmra": "N",
+#       "dpv_vacant": "N",
+#       "active": "N",
+#       "footnotes": "H#"
+#     }
+#   }
+# ]
+#
+# print(len(res))

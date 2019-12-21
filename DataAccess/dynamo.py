@@ -84,45 +84,45 @@ def getAddress(address_id):
             address['address_line_2'] = ""
     return address
 
-
-def updateAddress(address, address_id):
-    global ACCESS_KEY
-    global SECRET_KEY
-    global REGION
-    client = boto3.client('dynamodb', aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY,
-                          region_name=REGION)
-
-    response = client.update_item(
-        Key={
-            "address_id": {
-                "S": address_id
-            }
-        },
-        ExpressionAttributeNames={
-            "#C": "address_line_1",
-            "#D": "address_line_2",
-            "#E": "city",
-            "#F": "state"
-        },
-        ExpressionAttributeValues={
-            ':c': {
-                'S': address["address_line_1"],
-            },
-            ':d': {
-                'S': address["address_line_2"],
-            },
-            ':e': {
-                'S': address["city"],
-            },
-            ':f': {
-                'S': address["state"],
-            },
-        },
-        ReturnValues='ALL_NEW',
-        TableName='address',
-        UpdateExpression='SET #C = :c, #D = :d, #E = :e, #F = :f',
-    )
-    return response
+#
+# def updateAddress(address, address_id):
+#     global ACCESS_KEY
+#     global SECRET_KEY
+#     global REGION
+#     client = boto3.client('dynamodb', aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY,
+#                           region_name=REGION)
+#     address = reformat(address)
+#     response = client.update_item(
+#         Key={
+#             "address_id": {
+#                 "S": address_id
+#             }
+#         },
+#         ExpressionAttributeNames={
+#             "#C": "address_line_1",
+#             "#D": "address_line_2",
+#             "#E": "city",
+#             "#F": "state"
+#         },
+#         ExpressionAttributeValues={
+#             ':c': {
+#                 'S': address["address_line_1"],
+#             },
+#             ':d': {
+#                 'S': address["address_line_2"],
+#             },
+#             ':e': {
+#                 'S': address["city"],
+#             },
+#             ':f': {
+#                 'S': address["state"],
+#             },
+#         },
+#         ReturnValues='ALL_NEW',
+#         TableName='address',
+#         UpdateExpression='SET #C = :c, #D = :d, #E = :e, #F = :f',
+#     )
+#     return response
 
 
 # Test.

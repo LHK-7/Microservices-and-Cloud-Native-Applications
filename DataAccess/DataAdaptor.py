@@ -6,25 +6,20 @@ from Context.Context import Context
 
 logger = logging.getLogger()
 
-_default_connection = None
 
 def _get_default_connection():
-    global _default_connection
+    ctx = Context.get_default_context()
+    c_info = ctx.get_context("db_connect_info")
 
-    if _default_connection is None:
-        ctx = Context.get_default_context()
-        c_info = ctx.get_context("db_connect_info")
-
-        _default_connection = pymysql.connect(
-            host=c_info['host'],
-            user=c_info['user'],
-            password=c_info['password'],
-            port=c_info['port'],
-            db=c_info['db'],
-            charset=c_info['charset'],
-            cursorclass=pymysql.cursors.DictCursor
-        )
-
+    _default_connection = pymysql.connect(
+        host=c_info['host'],
+        user=c_info['user'],
+        password=c_info['password'],
+        port=c_info['port'],
+        db=c_info['db'],
+        charset=c_info['charset'],
+        cursorclass=pymysql.cursors.DictCursor
+    )
     return _default_connection
 
 
@@ -52,7 +47,7 @@ def commit_close(cnx):
     cnx.close()
 
 
-def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
+def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True, many=False):
     '''
     Helper function to run an SQL statement.
 
@@ -68,9 +63,9 @@ def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
 
     cursor_created = False
     connection_created = False
+    res = 0
 
     try:
-
         if conn is None:
             connection_created = True
             conn = _get_default_connection()
@@ -79,14 +74,20 @@ def run_q(sql, args=None, fetch=True, cur=None, conn=None, commit=True):
             cursor_created = True
             cur = conn.cursor()
 
-        if args is not None:
+        if many:
+            log_message = ""
+        elif args is not None:
             log_message = cur.mogrify(sql, args)
         else:
             log_message = sql
 
         logger.debug("Executing SQL = " + log_message)
 
-        res = cur.execute(sql, args)
+        if not many:
+            res = cur.execute(sql, args)
+        else:
+            for q in sql:
+                res += cur.execute(q)
 
         if fetch:
             data = cur.fetchall()

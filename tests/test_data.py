@@ -7,7 +7,7 @@ from DataAccess.DataObject import UsersRDB as UsersRDB
 
 def t1():
 
-    r = UsersRDB.get_by_email('metus.vitae@nibhAliquamornare.edu')
+    r = UsersRDB.get_user_by_email('metus.vitae@nibhAliquamornare.edu')
     print("Result = \n", json.dumps(r, indent=2))
 
 def t2():

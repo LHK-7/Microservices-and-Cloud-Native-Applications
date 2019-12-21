@@ -6,8 +6,6 @@ from datetime import datetime
 import json
 
 
-
-
 class DataException(Exception):
     unknown_error = 1001
     duplicate_key = 1002
@@ -36,22 +34,67 @@ class UsersRDB(BaseDataObject):
         self._ctx = ctx
 
     @classmethod
-    def get_by_email(cls, email):
-
-        sql = "select * from users where email=%s"
-        res, data = data_adaptor.run_q(sql=sql, args=(email), fetch=True)
+    def get_user_by_email(cls, email):
+        sql, args = data_adaptor.create_select(table_name="users", template={"email": email}, fields=["*"])
+        res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
         if data is not None and len(data) > 0:
             result = data[0]
         else:
             result = None
-
         return result
 
     @classmethod
+    def get_user_status(cls, email):
+        sql, args = data_adaptor.create_select(table_name="users", template={"email": email}, fields=["status"])
+        res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
+        return data[0]['status'] if res == 1 else None
+
+    @classmethod
+    def get_profile_by_userid(cls, userid):
+        sql, args = data_adaptor.create_select(table_name="profile",
+                                               template={"user_id": userid},
+                                               fields=["user_id", "profile_id", "element_type AS type",
+                                                       "element_subtype AS subtype", "element_value AS value"])
+        res, data = data_adaptor.run_q(sql, args=args)
+        return data if res > 0 else []
+
+    @classmethod
+    def get_profile_by_id(cls, pid):
+        sql, args = data_adaptor.create_select(table_name="profile",
+                                               template={"profile_id": pid},
+                                               fields=["user_id", "profile_id", "element_type AS type",
+                                                       "element_subtype AS subtype", "element_value AS value"])
+        res, data = data_adaptor.run_q(sql, args=args)
+        return data
+
+    @classmethod
+    def update_profile_by_id(cls, pid, new_values):
+        sql = []
+        for val in new_values:
+            sql.append("""
+                INSERT INTO profile (user_id, element_type, element_subtype, profile_id, element_value) 
+                VALUES (\"{0}\", \"{1}\", \"{2}\", \"{3}\", \"{4}\") 
+                ON DUPLICATE KEY UPDATE 
+                user_id = \"{0}\",
+                element_type = \"{1}\",
+                element_subtype = \"{2}\",
+                profile_id = \"{3}\",
+                element_value = \"{4}\";
+            """.format(val["user_id"], val["element_type"], val["element_subtype"],
+                       val["profile_id"], val["element_value"]))
+        res, data = data_adaptor.run_q(sql, many=True)
+
+        return res
+
+    @classmethod
+    def delete_profile_by_id(cls, pid):
+        sql, args = data_adaptor.create_delete(table_name="profile",
+                                               template={"profile_id": pid})
+        res, data = data_adaptor.run_q(sql, args=args)
+        return res
+
+    @classmethod
     def create_user(cls, user_info):
-
-        result = None
-
         try:
             sql, args = data_adaptor.create_insert(table_name="users", row=user_info)
             res, data = data_adaptor.run_q(sql, args)
@@ -64,14 +107,12 @@ class UsersRDB(BaseDataObject):
                 raise (DataException(DataException.duplicate_key))
             else:
                 raise DataException()
-        except Exception as e:
+        except Exception as exp:
             raise DataException()
-
         return result
 
     @classmethod
     def update_user(cls, user_info, template):
-        result = None
         try:
             sql, args = data_adaptor.create_update(table_name="users", new_values=user_info, template=template)
             res, data = data_adaptor.run_q(sql, args)
@@ -79,7 +120,7 @@ class UsersRDB(BaseDataObject):
                 result = None
             else:
                 result = res
-        except Exception as e:
+        except Exception as exp:
             raise DataException()
 
         return result
@@ -101,49 +142,51 @@ class UsersRDB(BaseDataObject):
     @classmethod
     def validate_info(cls, user_info):
         try:
-            sql = "select password from users where email = " + "'" + user_info + "'"
-            res, data = data_adaptor.run_q(sql)
+            sql, args = data_adaptor.create_select(
+                table_name="users", template={"email": user_info}, fields=["password"]
+            )
+            res, data = data_adaptor.run_q(sql, args=args)
             if res != 1:
-                result = None
+                res = None
             else:
                 res = data[0].get("password")
-        except Exception as e:
+        except Exception as exp:
+            print("Error: validate_info\n", exp)
             raise DataException()
 
         return res
 
     @classmethod
-    def validate_password(cls, password):
+    def get_following_users(cls, curr_user):
         try:
-            sql = "select password from users where password = " + "'" + password + "'"
-            res, data = data_adaptor.run_q(sql)
-            if res != 1:
-                result = None
-            else:
-                res = data[0].get("password")
-        except Exception as e:
-            raise DataException()
-
-        return res
-
-
-    @classmethod
-    def find_postinfo(cls, user_email):
-        try:
-            sql = "select id,content, image, date from posts where author = " + "'" + user_email + "'"
-            res, data = data_adaptor.run_q(sql)
+            sql = "SELECT last_name, first_name, email, status, avatar FROM users " + \
+                  "WHERE email IN (SELECT followee FROM following WHERE follower = %s)"
+            res, data = data_adaptor.run_q(sql, args=[curr_user])
             if res == 0:
-                result = json.dumps([], indent=4, sort_keys=True, default=str)
+                result = json.dumps([])
             else:
                 result = json.dumps(data, indent=4, sort_keys=True, default=str)
-        except Exception as e:
+        except Exception as exp:
+            raise DataException()
+
+        return result
+
+    @classmethod
+    def find_post_by_authors(cls, curr_user):
+        try:
+            sql = "SELECT * FROM posts WHERE author IN (SELECT followee FROM following WHERE follower = %s) OR author = %s"
+            res, data = data_adaptor.run_q(sql, args=[curr_user, curr_user])
+            if res == 0:
+                result = json.dumps([])
+            else:
+                result = json.dumps(data, indent=4, sort_keys=True, default=str)
+        except Exception as exp:
             raise DataException()
 
         return result
 
     @classmethod
     def create_post(cls, content):
-
         try:
             sql, args = data_adaptor.create_insert(table_name="posts", row=content)
             res, data = data_adaptor.run_q(sql, args)
@@ -153,44 +196,29 @@ class UsersRDB(BaseDataObject):
         return res
 
     @classmethod
-    def get_comments_of_post(cls, postId):
+    def get_comments_of_post(cls, post_id):
         try:
-            sql = "select * from comments where to_post=%s"
-            res, data = data_adaptor.run_q(sql=sql, args=(postId), fetch=True)
+            sql, args = data_adaptor.create_select(table_name="comments", fields="*", template={"to_post": post_id})
+            res, data = data_adaptor.run_q(sql=sql, args=args, fetch=True)
             if res == 0:
-                result = "there is no comment"
+                result = json.dumps([])
             else:
                 result = json.dumps(data, indent=4, sort_keys=True, default=str)
-        except Exception as e:
-            raise DataException()
-
-        return result
-
-    @classmethod
-    def get_comments_of_post(cls, postId):
-        try:
-            sql = "select * from comments where to_post=%s"
-            res, data = data_adaptor.run_q(sql=sql, args=(postId), fetch=True)
-            if res == 0:
-                result = "there is no comment"
-            else:
-                result = json.dumps(data, indent=4, sort_keys=True, default=str)
-        except Exception as e:
+        except Exception as exp:
             raise DataException()
 
         return result
 
     @classmethod
     def create_comment(cls, content):
-
         try:
             sql, args = data_adaptor.create_insert(table_name="comments", row=content)
             res, data = data_adaptor.run_q(sql, args)
             if res != 1:
-                result = json.dumps([], indent=4, sort_keys=True, default=str)
+                result = json.dumps([])
             else:
                 result = json.dumps(data, indent=4, sort_keys=True, default=str)
-        except Exception as e:
+        except Exception as exp:
             raise DataException()
 
         return result

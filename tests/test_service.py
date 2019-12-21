@@ -5,7 +5,7 @@ from CustomerInfo.Users import UsersService as UserService
 
 def t1():
 
-    r = UserService.get_by_email('metus.vitae@nibhAliquamornare.edu')
+    r = UserService.get_user_by_email('metus.vitae@nibhAliquamornare.edu')
     print("Result = \n", json.dumps(r, indent=2))
 
 

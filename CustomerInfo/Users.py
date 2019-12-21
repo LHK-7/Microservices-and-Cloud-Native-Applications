@@ -37,9 +37,8 @@ class UsersService(BaseService):
         self._ctx = ctx
 
     @classmethod
-    def get_by_email(cls, email):
-
-        result = UsersRDB.get_by_email(email)
+    def get_user_by_email(cls, email):
+        result = UsersRDB.get_user_by_email(email)
         return result
 
     @classmethod
@@ -62,9 +61,59 @@ class UsersService(BaseService):
         return result
 
     @classmethod
+    def get_profile_by_email(cls, email):
+        result = UsersRDB.get_profile_by_userid(email)
+        profile = {}
+        if len(result) > 0:
+            profile["profile_id"] = result[0]["profile_id"]
+            profile["user_id"] = result[0]["user_id"]
+            profile["profile_entries"] = UsersService.filter_profile(result)
+        return profile
+
+    @classmethod
+    def get_profile_by_id(cls, pid):
+        result = UsersRDB.get_profile_by_id(pid)
+        profile = {}
+        if len(result) > 0:
+            profile["profile_id"] = result[0]["profile_id"]
+            profile["user_id"] = result[0]["user_id"]
+            profile["profile_entries"] = UsersService.filter_profile(result)
+        return profile
+
+    @classmethod
+    def update_profile_by_id(cls, pid, profile):
+        new_values = []
+        uid, entries = profile['user_id'], profile['profile_entries']
+
+        if entries:
+            for entry in entries:
+                new_values.append({
+                    "profile_id": pid,
+                    "user_id": uid,
+                    "element_type": entry["type"],
+                    "element_subtype": entry["subtype"],
+                    "element_value": entry["value"],
+                })
+
+        result = UsersRDB.update_profile_by_id(pid, new_values)
+        return result
+
+    @classmethod
+    def delete_profile_by_id(cls, pid):
+        result = UsersRDB.delete_profile_by_id(pid)
+        return result
+
+    @staticmethod
+    def filter_profile(entries):
+        output = []
+        for entry in entries:
+            output.append({k: entry[k] for k in ["type", "subtype", "value"]})
+        return output
+
+    @classmethod
     def activate_user(cls, user_info):
         v = user_info.get('email', None)
-        res = UsersRDB.get_by_email(v)
+        res = UsersRDB.get_user_by_email(v)
         if res is None:
             raise ServiceException(ServiceException.bad_data,
                                    "Email not in database: " + v)
@@ -75,7 +124,7 @@ class UsersService(BaseService):
     @classmethod
     def update_user(cls, data):
         v = data["email"]
-        res = UsersRDB.get_by_email(v)
+        res = UsersRDB.get_user_by_email(v)
         if res is None:
             raise ServiceException(ServiceException.bad_data,
                                    "Email not in database: " + v)

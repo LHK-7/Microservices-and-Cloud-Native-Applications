@@ -1,9 +1,9 @@
 import jwt
 
 from DataAccess.DataObject import UsersRDB as UsersRDB
+from werkzeug.security import generate_password_hash,check_password_hash
 
-
-class authentication():
+class Authentication:
 
     def __init__(self, app):
         self.app = app
@@ -13,22 +13,8 @@ class authentication():
         return self.app(environ, start_response)
 
     @classmethod
-    def validate(self, info):
-        for user, password in info.items():
-            user_email = user
-            user_password = password
-
+    def validate(cls, info):
+        (user_email, user_password), = info.items()
         res = UsersRDB.validate_info(user_email)
-        if res == user_password:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def passwordValidate(self, password):
-        user_password = jwt.decode(password, 'secret', algorithms=['HS256'])
-        res = UsersRDB.validate_password(user_password.get('password'))
-        if res == user_password.get('password'):
-            return True
-        else:
-            return False
+        return check_password_hash(res,user_password)
+        
