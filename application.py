@@ -1,5 +1,5 @@
 # Set up the following THREE environment variables before running.
-# test={"host":"localhost","user":"root","password":"123","port":3306,"db":"e6156","charset":"utf8mb4"}
+# test=
 # dynamo=
 # sns=
 
@@ -70,8 +70,8 @@ config = {
         'http://localhost:4200',
         'http://127.0.0.1:5000/ ',  # flask
         'https://e6156.surge.sh',  # angular
-        'http://e6156-yeah.s3-website.us-east-2.amazonaws.com', # s3
-        'https://d32e0zjclv95xl.cloudfront.net' # cloudfront
+        'http://e6156-yeah.s3-website.us-east-2.amazonaws.com',  # s3
+        'https://d32e0zjclv95xl.cloudfront.net'  # cloudfront
     ]
 }
 allowed_url = 'https://d32e0zjclv95xl.cloudfront.net'
@@ -249,7 +249,7 @@ def user_register():
 def login():
     user = request.json['username']
     password = request.json['password']
-    res = Authentication.validate({ user: password })
+    res = Authentication.validate({user: password})
     if res:
         encoded_password = jwt.encode({'password': password, 'user': user}, 'secret', algorithm='HS256').decode(
             'utf-8')
@@ -307,7 +307,6 @@ def user_email(email):
             rsp = user_service.get_by_email(email)
 
             if rsp is not None:
-                # etag = to_etag(rsp)
                 rsp_data = rsp
                 rsp_status = 200
                 rsp_txt = "OK"
@@ -323,9 +322,6 @@ def user_email(email):
             rsp_txt = str(rsp_data)
 
         elif inputs["method"] == 'POST':
-            # client_etag = request.headers["ETag"]
-            # res = [id, last_name, first_name, email, password]
-            # temp = {"id": res[0], "last_name": res[1], "first_name": res[2], "email": res[3], "password": res[4]}
             temp = request.json
             temp["email"] = email
             rsp_data = user_service.update_user(temp)
@@ -344,8 +340,6 @@ def user_email(email):
 
         if rsp_data is not None:
             full_rsp = Response(json.dumps(rsp_data), status=rsp_status, content_type="application/json")
-            # if inputs["method"] == "GET":
-            #     full_rsp.headers["ETag"] = etag
 
         else:
             full_rsp = Response(rsp_txt, status=rsp_status, content_type="text/plain")
@@ -398,20 +392,20 @@ def get_or_update_address(address_id):
     return full_rsp
 
 
-# test_received = {
-#     "display_name": "rubin",
-#     "home_phone": "1564648",
-#     "work_phone": "6485612",
-#     "address_line_1": "13161 Brayton Drive",
-#     "address_line_2": "APT #30",
-#     "city": "Anchorage",
-#     "state": "AK"
-# }
-
-
 # query string: ?email=<email>
 @application.route("/api/profile", methods=["GET", "POST"])
 def profile_service_1():
+    """
+    body_for_POST = {
+    "display_name": "rubin",
+    "home_phone": "1564648",
+    "work_phone": "6485612",
+    "address_line_1": "13161 Brayton Drive",
+    "address_line_2": "APT #30",
+    "city": "Anchorage",
+    "state": "AK"
+}
+    """
     global _user_service
 
     # get email from query string
@@ -602,7 +596,7 @@ def profile_service_1():
 
 
 # Etag (GET|PUT) is implemented here.
-@application.route("/api/profile/<email>", methods=["GET", "PUT", "DELETE"])
+@application.route("/api/profile/<profile_id>", methods=["GET", "PUT", "DELETE"])
 def profile_service_2(email):
     global _user_service
 
