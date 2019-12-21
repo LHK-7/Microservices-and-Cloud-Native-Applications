@@ -366,9 +366,17 @@ def user_email(email):
 
 @application.route("/addresses", methods=["POST", "PUT"])
 def post_address():
+    """
+    request_body = {
+        "address_line_1": "13161 Brayton Drive",
+        "address_line_2": "APT #30",
+        "city": "Anchorage",
+        "state": "AK"
+    }
+    """
     input_address = log_and_extract_input()['body']
     validated = validate_address(input_address)
-    if 'delivery_point_barcode' not in validated:
+    if validated == 'Invalid.':
         # if address is invalid, return False
         return False
     else:
@@ -381,15 +389,15 @@ def get_address(address_id):
     return dynamo.getAddress(address_id)
 
 
-test_received = {
-    "display_name": "rubin",
-    "home_phone": "1564648",
-    "work_phone": "6485612",
-    "address_line_1": "13161 Brayton Drive",
-    "address_line_2": "APT #30",
-    "city": "Anchorage",
-    "state": "AK"
-}
+# test_received = {
+#     "display_name": "rubin",
+#     "home_phone": "1564648",
+#     "work_phone": "6485612",
+#     "address_line_1": "13161 Brayton Drive",
+#     "address_line_2": "APT #30",
+#     "city": "Anchorage",
+#     "state": "AK"
+# }
 
 
 # query string: ?email=<email>
@@ -479,7 +487,7 @@ def profile_service_1():
                     "method": "GET, PUT, DELETE"
                 },
                 {
-                    "href": "/api/customers/<email>/profile",
+                    "href": "/api/user/<email>/profile",
                     "rel": "profile",
                     "method": "GET"
                 }
@@ -652,7 +660,7 @@ def profile_service_2(email):
                     "method": "GET, POST"
                 },
                 {
-                    "href": "/api/customers/<email>/profile",
+                    "href": "/api/user/<email>/profile",
                     "rel": "profile",
                     "method": "GET"
                 }
