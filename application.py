@@ -435,14 +435,14 @@ def profile_service_2(profile_id):
             etag = to_etag(original_profile)
             if not request.headers.get("If-Match"):
                 rsp_txt = "Missing ETag"
-                rsp_status = 504
+                rsp_status = 428
             elif etag == request.headers.get("If-Match"):
                 res = user_service.update_profile_by_id(profile_id, profile)
                 rsp_txt = "entries updated"
                 rsp_status = 200
             else:
                 rsp_txt = "ETag Does Not Match"
-                rsp_status = 504
+                rsp_status = 412
 
         except Exception as exp:
             rsp_txt += str(exp)
