@@ -1,4 +1,4 @@
-Flask==1.1.1
+Flask==2.3.2
 Projects==1.0.9
 boto3==1.9.237
 PyJWT==1.7.1
